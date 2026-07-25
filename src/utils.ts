@@ -76,17 +76,17 @@ export function ensureVenvExists(projectRoot: string): string {
       if (isWin) {
         const batScript = path.join(projectRoot, "setup.bat");
         if (fs.existsSync(batScript)) {
-          execSync(`cmd.exe /c "${batScript}"`, { cwd: projectRoot, stdio: "pipe", timeout: 15000 });
+          execSync(`cmd.exe /c "${batScript}"`, { cwd: projectRoot, stdio: "pipe", timeout: 60000 });
         }
       } else {
         const shScript = path.join(projectRoot, "setup.sh");
         if (fs.existsSync(shScript)) {
-          execSync(`bash "${shScript}"`, { cwd: projectRoot, stdio: "pipe", timeout: 15000 });
+          execSync(`bash "${shScript}"`, { cwd: projectRoot, stdio: "pipe", timeout: 60000 });
         }
       }
 
       if (fs.existsSync(patchScript)) {
-        execSync(`node "${patchScript}"`, { cwd: projectRoot, stdio: "pipe", timeout: 5000 });
+        execSync(`node "${patchScript}"`, { cwd: projectRoot, stdio: "pipe", timeout: 15000 });
       }
     } catch {
       // Fallback
@@ -260,50 +260,54 @@ export function summarizeShortly(content: string, title?: string): string {
 export function injectObsidianWikilinks(text: string): string {
   if (!text) return text;
 
-  const concepts = [
-    'Python',
-    'Java',
-    'JavaScript',
-    'TypeScript',
-    'PyCharm',
-    'VS Code',
-    'Variables',
-    'Data Types',
-    'Strings',
-    'Integers',
-    'Booleans',
-    'Lists',
-    'Functions',
-    'Loops',
-    'Conditional Logic',
-    'Error Handling',
-    'Exceptions',
-    'OOPS',
-    'Encapsulation',
-    'Abstraction',
-    'Inheritance',
-    'Polymorphism',
-    'Classes',
-    'Objects',
-    'YouTube',
-    'PDF',
-    'Git',
-    'Repository',
+  const universalConcepts = [
+    // Programming & Software Engineering
+    'Python', 'Java', 'JavaScript', 'TypeScript', 'C++', 'C#', 'Go', 'Rust', 'Ruby', 'PHP', 'SQL', 'HTML', 'CSS', 'Bash',
+    'Variables', 'Data Types', 'Strings', 'Integers', 'Booleans', 'Floats', 'Arrays', 'Lists', 'Dictionaries', 'Tuples', 'Sets',
+    'Functions', 'Methods', 'Loops', 'For Loops', 'While Loops', 'Conditional Logic', 'Recursion', 'Pointers', 'Memory Management',
+    'OOPS', 'Object-Oriented Programming', 'Encapsulation', 'Abstraction', 'Inheritance', 'Polymorphism', 'Classes', 'Objects', 'Interfaces',
+    'Data Structures', 'Algorithms', 'Binary Trees', 'Linked Lists', 'Stacks', 'Queues', 'Hash Tables', 'Graphs', 'Sorting', 'Searching',
+    'Error Handling', 'Exceptions', 'Try Catch', 'Try Except', 'Debugging', 'Testing', 'Unit Tests',
+    'PyCharm', 'VS Code', 'Git', 'GitHub', 'Repository', 'Terminal', 'CLI', 'Obsidian', 'Markdown', 'API', 'REST API', 'JSON', 'HTTP', 'YouTube', 'PDF',
+    // Science, Technology & AI
+    'Artificial Intelligence', 'Machine Learning', 'Deep Learning', 'Neural Networks', 'Large Language Models', 'Data Science', 'Physics', 'Mathematics', 'Chemistry', 'Biology',
+    // Business, Design & Architecture
+    'Architecture', 'System Design', 'Project Management', 'Agile', 'Scrum', 'Database', 'Cloud Computing', 'Security', 'Authentication', 'DevOps', 'CI/CD',
+    // General Topics & Research
+    'Research', 'Lecture', 'Tutorial', 'Documentation', 'Study Guide', 'Executive Summary', 'Key Points', 'Notes', 'Overview'
   ];
 
   let result = text;
-  const presentConcepts: string[] = [];
+  const presentConcepts = new Set<string>();
 
-  for (const concept of concepts) {
-    const regex = new RegExp(`(?<!\\[\\[|\\w)${concept}(?!\\]\\]|\\w)`, 'i');
+  for (const concept of universalConcepts) {
+    const escaped = concept.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`(?<!\\[\\[|\\w)${escaped}(?!\\]\\]|\\w)`, 'i');
     if (regex.test(result)) {
       result = result.replace(regex, `[[${concept}]]`);
-      presentConcepts.push(concept);
+      presentConcepts.add(concept);
     }
   }
 
-  if (!result.includes('Knowledge Graph Links') && presentConcepts.length > 0) {
-    const linksHeader = `\n\n## 🕸️ Knowledge Graph Links\n` + presentConcepts.map((c) => `[[${c}]]`).join(' • ') + '\n';
+  // Dynamic Capitalized Term Auto-Wikilinker for any domain (Science, History, Tech, Business, Personal)
+  const capitalizedTermRegex = /(?<!\\[\\[|\\w|#|#\s)(?:\b[A-Z][a-z0-9]+(?:\s+[A-Z][a-z0-9]+)*\b)(?!\\]\\]|\\w)/g;
+  const matches = Array.from(result.matchAll(capitalizedTermRegex));
+
+  const excluded = new Set(['The', 'This', 'That', 'With', 'From', 'Have', 'Which', 'Your', 'About', 'There', 'Their', 'Would', 'Could', 'Should', 'Other', 'First', 'These', 'Where', 'After', 'Being', 'Under', 'Note', 'URL', 'Channel', 'Title', 'Keywords', 'Executive', 'Summary', 'Full', 'Transcript', 'Click', 'Answer', 'Explanation', 'Correct']);
+
+  for (const match of matches) {
+    const term = match[0].trim();
+    if (term.length >= 4 && !excluded.has(term) && !presentConcepts.has(term)) {
+      const escapedTerm = term.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const termRegex = new RegExp(`(?<!\\[\\[|\\w)${escapedTerm}(?!\\]\\]|\\w)`, 'g');
+      result = result.replace(termRegex, `[[${term}]]`);
+      presentConcepts.add(term);
+    }
+  }
+
+  if (!result.includes('Knowledge Graph Links') && presentConcepts.size > 0) {
+    const topLinks = Array.from(presentConcepts).slice(0, 15).map((c) => `[[${c}]]`).join(' • ');
+    const linksHeader = `\n\n## 🕸️ Knowledge Graph Links\n${topLinks}\n`;
     result += linksHeader;
   }
 
@@ -354,7 +358,6 @@ export function generateTopicNoteMarkdown(topic: string, title?: string): string
     return injectObsidianWikilinks(oopsNote);
   }
 
-  // Generic Topic Generator Template
   const genericNote = [
     `# 📌 ${cleanTitle}`,
     ``,

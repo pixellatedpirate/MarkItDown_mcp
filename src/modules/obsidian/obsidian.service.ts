@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import dotenv from 'dotenv';
-import { expandHome, generateTopicNoteMarkdown } from '../../utils.js';
+import { expandHome, generateTopicNoteMarkdown, injectObsidianWikilinks } from '../../utils.js';
 
 dotenv.config();
 
@@ -136,7 +136,6 @@ export class ObsidianService {
     try {
       const allFiles = await this.listFiles();
       const currentBase = path.basename(currentFilename, '.md').toLowerCase();
-      const currentLower = content.toLowerCase();
 
       let enhancedContent = content;
       const existingTitles: string[] = [];
@@ -153,28 +152,29 @@ export class ObsidianService {
         }
       }
 
-      const relatedNotes: { title: string; sharedConcepts: string[] }[] = [];
+      enhancedContent = injectObsidianWikilinks(enhancedContent);
+
+      const relatedNotes: { title: string; sharedWords: string[] }[] = [];
+      const currentWords = new Set(
+        enhancedContent.toLowerCase().match(/\b[a-z]{4,}\b/g) || []
+      );
+      const stopWords = new Set(['this', 'that', 'with', 'from', 'have', 'were', 'which', 'your', 'about', 'there', 'their', 'would', 'could', 'should', 'other', 'first', 'these', 'where', 'after', 'being', 'under', 'notes', 'guide', 'summary']);
+
       for (const title of existingTitles) {
         try {
           const noteContent = await this.getNote(title);
-          const noteLower = noteContent.toLowerCase();
-
-          const commonKeywords = [
-            'python', 'java', 'c', 'cpp', 'javascript', 'typescript', 'variables', 'data types',
-            'strings', 'integers', 'booleans', 'lists', 'functions', 'loops',
-            'conditional logic', 'error handling', 'exceptions', 'math', 'pycharm',
-            'oops', 'encapsulation', 'abstraction', 'inheritance', 'polymorphism',
-            'editor', 'code', 'array', 'object', 'class', 'method', 'api'
-          ];
-
-          const shared = commonKeywords.filter(
-            (kw) => currentLower.includes(kw) && noteLower.includes(kw)
+          const noteWords = new Set(
+            noteContent.toLowerCase().match(/\b[a-z]{4,}\b/g) || []
           );
 
-          if (shared.length >= 1) {
+          const shared = Array.from(currentWords).filter(
+            (w) => noteWords.has(w) && !stopWords.has(w)
+          );
+
+          if (shared.length >= 2) {
             relatedNotes.push({
               title,
-              sharedConcepts: shared.slice(0, 4),
+              sharedWords: shared.slice(0, 4),
             });
           }
         } catch {
@@ -186,8 +186,8 @@ export class ObsidianService {
         const graphSection = [
           `\n\n## 🕸️ Interconnected Knowledge Graph & Vault Links`,
           `### 🔗 Related Notes in Vault`,
-          ...relatedNotes.map(
-            (r) => `- [[${r.title}]] *(Shares: ${r.sharedConcepts.join(', ')})*`
+          ...relatedNotes.slice(0, 6).map(
+            (r) => `- [[${r.title}]] *(Shares: ${r.sharedWords.join(', ')})*`
           ),
           ``
         ].join('\n');
