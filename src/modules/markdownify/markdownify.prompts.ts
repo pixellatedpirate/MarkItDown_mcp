@@ -2,6 +2,27 @@ import { PromptDecorator as Prompt, ExecutionContext } from '@nitrostack/core';
 
 export class MarkdownifyPrompts {
   @Prompt({
+    name: 'summarize_youtube_video',
+    description: 'Instruct the model to fetch a YouTube transcript using youtube-to-markdown and summarize the main points in Markdown',
+    arguments: [
+      {
+        name: 'url',
+        description: 'URL of the YouTube video to summarize',
+        required: true,
+      },
+    ],
+  })
+  async summarizeYouTube(args: { url: string }, ctx: ExecutionContext) {
+    ctx.logger.info('Generating YouTube summary prompt', { url: args.url });
+    return [
+      {
+        role: 'user' as const,
+        content: `Please fetch the transcript for this YouTube video (${args.url}) using the \`youtube-to-markdown\` tool and summarize the main points in clean, structured Markdown format with key takeaways.`,
+      },
+    ];
+  }
+
+  @Prompt({
     name: 'markdownify_help',
     description: 'Get guidance on converting documents, media, or web content into Markdown',
     arguments: [

@@ -4,10 +4,10 @@ import { Markdownify } from '../../Markdownify.js';
 export class MarkdownifyTools {
   @Tool({
     name: 'youtube-to-markdown',
-    title: 'YouTube to Markdown',
-    description: 'Convert a YouTube video to markdown, including full video transcript and metadata. Call this tool IMMEDIATELY with the video URL whenever the user mentions a YouTube video or link.',
+    title: 'YouTube to Markdown & Summary',
+    description: 'Convert or summarize a YouTube video in Markdown. Fetches video title, metadata, description, and full transcript. When the user asks to "summarize" or get "main points" of a YouTube video, call this tool immediately to fetch the transcript, then summarize the key takeaways in clean, structured Markdown bullet points.',
     inputSchema: z.object({
-      url: z.string().describe('URL of the YouTube video'),
+      url: z.string().describe('URL of the YouTube video to convert or summarize'),
     }),
     annotations: {
       readOnlyHint: true,
@@ -20,7 +20,7 @@ export class MarkdownifyTools {
     const result = await Markdownify.toMarkdown({ url: input.url });
     return {
       text: result.text,
-      title: 'YouTube Video Markdown',
+      title: 'YouTube Video Markdown & Summary',
       type: 'youtube',
       url: input.url,
     };
