@@ -4,7 +4,6 @@ import os from 'os';
 import dotenv from 'dotenv';
 import { expandHome } from '../../utils.js';
 
-// Load environment variables from .env if present
 dotenv.config();
 
 export interface ObsidianFile {
@@ -133,11 +132,70 @@ export class ObsidianService {
     return await fs.promises.readFile(notePath, 'utf-8');
   }
 
+  public async enhanceNoteWithVaultConnections(currentFilename: string, content: string): Promise<string> {
+    try {
+      const allFiles = await this.listFiles();
+      const currentBase = path.basename(currentFilename, '.md').toLowerCase();
+      const relatedNotes: { title: string; sharedConcepts: string[] }[] = [];
+
+      const currentLower = content.toLowerCase();
+
+      for (const file of allFiles) {
+        if (file.isDir || !file.name.endsWith('.md')) continue;
+        const noteTitle = path.basename(file.name, '.md');
+        if (noteTitle.toLowerCase() === currentBase) continue;
+
+        try {
+          const noteContent = await this.getNote(file.path);
+          const noteLower = noteContent.toLowerCase();
+
+          const commonKeywords = [
+            'python', 'java', 'javascript', 'typescript', 'variables', 'data types',
+            'strings', 'integers', 'booleans', 'lists', 'functions', 'loops',
+            'conditional logic', 'error handling', 'exceptions', 'math', 'pycharm',
+            'editor', 'code', 'array', 'object', 'class', 'method', 'api'
+          ];
+
+          const shared = commonKeywords.filter(
+            (kw) => currentLower.includes(kw) && noteLower.includes(kw)
+          );
+
+          if (shared.length >= 2) {
+            relatedNotes.push({
+              title: noteTitle,
+              sharedConcepts: shared.slice(0, 4),
+            });
+          }
+        } catch {
+          // Ignore unreadable
+        }
+      }
+
+      if (relatedNotes.length === 0) {
+        return content;
+      }
+
+      const graphSection = [
+        `\n\n## 🕸️ Interconnected Knowledge Graph & Vault Links`,
+        `### 🔗 Related Notes in Vault`,
+        ...relatedNotes.map(
+          (r) => `- [[${r.title}]] *(Shares: ${r.sharedConcepts.join(', ')})*`
+        ),
+        ``
+      ].join('\n');
+
+      return `${content}${graphSection}`;
+    } catch {
+      return content;
+    }
+  }
+
   async saveNote(filename: string, content: string, tags?: string[]): Promise<string> {
-    let formattedContent = content;
+    let finalContent = await this.enhanceNoteWithVaultConnections(filename, content);
+
     if (tags && tags.length > 0) {
       const tagHeader = tags.map((t) => (t.startsWith('#') ? t : `#${t}`)).join(' ');
-      formattedContent = `${tagHeader}\n\n${content}`;
+      finalContent = `${tagHeader}\n\n${finalContent}`;
     }
 
     const apiKey = this.getApiKey();
@@ -145,7 +203,7 @@ export class ObsidianService {
       try {
         const res = await this.fetchApi(`/vault/${encodeURIComponent(filename)}`, {
           method: 'PUT',
-          body: formattedContent,
+          body: finalContent,
         });
         if (res.ok) {
           return filename;
@@ -161,7 +219,7 @@ export class ObsidianService {
       fs.mkdirSync(parentDir, { recursive: true });
     }
 
-    await fs.promises.writeFile(notePath, formattedContent, 'utf-8');
+    await fs.promises.writeFile(notePath, finalContent, 'utf-8');
     return notePath;
   }
 
