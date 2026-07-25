@@ -33,11 +33,17 @@ export class Markdownify {
     projectRoot: string,
   ): Promise<string> {
     const markitdownPath = resolveMarkitdownPath(projectRoot);
+    const venvBinDir = path.dirname(markitdownPath);
+    const env = {
+      ...process.env,
+      PATH: `${venvBinDir}${path.delimiter}${process.env.PATH || ""}`,
+    };
 
     let stdout: string;
     try {
       ({ stdout } = await execFileAsync(markitdownPath, [filePathOrUrl], {
         maxBuffer: 50 * 1024 * 1024, // 50 MB
+        env,
       }));
     } catch (e: unknown) {
       const err = e as NodeJS.ErrnoException;
@@ -128,7 +134,6 @@ export class Markdownify {
       if (url) {
         validateUrl(url);
 
-        // Dedicated YouTube handling: normalize YouTube URL to standard watch link
         if (isYouTubeUrl(url)) {
           const youtubeUrl = normalizeYouTubeUrl(url);
           const youtubeText = await this._markitdown(youtubeUrl, projectRoot);
@@ -146,7 +151,6 @@ export class Markdownify {
           return { text: youtubeText };
         }
 
-        // Generic URL handling
         try {
           const directText = await this._markitdown(url, projectRoot);
           if (directText && directText.trim()) {
@@ -156,7 +160,6 @@ export class Markdownify {
           // Fallback to safeFetch if direct URL conversion was blocked
         }
 
-        // Fallback: Fetch page content using safeFetch with browser headers and convert temp file
         const response = await this.safeFetch(url);
         if (response.status >= 400) {
           throw new Error(`HTTP ${response.status} ${response.statusText} when fetching ${url}`);

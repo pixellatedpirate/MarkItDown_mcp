@@ -1,5 +1,5 @@
 echo 'prepare Windows preinstall'
-echo 'Installing Python dependencies for OCR...'
+echo 'Installing Python dependencies for OCR and Audio...'
 python -m venv .venv
-.venv\Scripts\pip install markitdown pypdf pdfminer.six pdfplumber youtube-transcript-api
+.venv\Scripts\pip install markitdown pypdf pdfminer.six pdfplumber SpeechRecognition imageio-ffmpeg youtube-transcript-api
 echo 'Finished installing Python dependencies'
