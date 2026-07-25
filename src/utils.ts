@@ -22,10 +22,36 @@ export function expandHome(filepath: string): string {
   }
 
   if (cleaned.startsWith("~/") || cleaned === "~") {
-    return path.join(os.homedir(), cleaned.slice(1));
+    cleaned = path.join(os.homedir(), cleaned.slice(1));
   }
 
-  return path.normalize(cleaned);
+  const normalized = path.normalize(cleaned);
+
+  // If path exists as-is, return normalized path
+  if (fs.existsSync(normalized)) {
+    return normalized;
+  }
+
+  // If input is a relative path or bare filename (e.g. "gg.pdf" or "Downloads/gg.pdf"),
+  // search in common user directories (Downloads, Desktop, Documents, Home)
+  if (!path.isAbsolute(normalized)) {
+    const searchDirs = [
+      process.cwd(),
+      path.join(os.homedir(), "Downloads"),
+      path.join(os.homedir(), "Desktop"),
+      path.join(os.homedir(), "Documents"),
+      os.homedir(),
+    ];
+
+    for (const dir of searchDirs) {
+      const candidate = path.join(dir, normalized);
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+  }
+
+  return normalized;
 }
 
 export function resolveMarkitdownPath(projectRoot: string): string {

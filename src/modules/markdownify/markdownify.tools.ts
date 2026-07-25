@@ -5,7 +5,7 @@ export class MarkdownifyTools {
   @Tool({
     name: 'youtube-to-markdown',
     title: 'YouTube to Markdown',
-    description: 'Convert a YouTube video to markdown, including transcript if available',
+    description: 'Convert a YouTube video to markdown, including transcript if available. Call this tool IMMEDIATELY with the video URL.',
     inputSchema: z.object({
       url: z.string().describe('URL of the YouTube video'),
     }),
@@ -29,9 +29,9 @@ export class MarkdownifyTools {
   @Tool({
     name: 'pdf-to-markdown',
     title: 'PDF to Markdown',
-    description: 'Convert a PDF file to markdown',
+    description: 'Convert a PDF file to markdown. Call this tool IMMEDIATELY with the filename or path (e.g. filepath="gg.pdf") whenever the user mentions a PDF or attached file. DO NOT ask the user for an absolute path; the server automatically locates files in Downloads, Desktop, Documents, or current folder.',
     inputSchema: z.object({
-      filepath: z.string().describe('Absolute path of the PDF file to convert'),
+      filepath: z.string().describe('Filename or path of the PDF file (e.g. gg.pdf, ~/Downloads/gg.pdf, or absolute path)'),
     }),
     annotations: {
       readOnlyHint: true,
@@ -52,7 +52,7 @@ export class MarkdownifyTools {
   @Tool({
     name: 'bing-search-to-markdown',
     title: 'Bing Search to Markdown',
-    description: 'Convert a Bing search results page to markdown',
+    description: 'Convert a Bing search results page to markdown. Call this tool IMMEDIATELY with the search results URL.',
     inputSchema: z.object({
       url: z.string().describe('URL of the Bing search results page'),
     }),
@@ -76,7 +76,7 @@ export class MarkdownifyTools {
   @Tool({
     name: 'webpage-to-markdown',
     title: 'Webpage to Markdown',
-    description: 'Convert a webpage to markdown',
+    description: 'Convert a webpage to markdown. Call this tool IMMEDIATELY with the webpage URL.',
     inputSchema: z.object({
       url: z.string().describe('URL of the webpage to convert'),
     }),
@@ -100,9 +100,9 @@ export class MarkdownifyTools {
   @Tool({
     name: 'image-to-markdown',
     title: 'Image to Markdown',
-    description: 'Convert an image to markdown, including metadata and description',
+    description: 'Convert an image to markdown, including metadata and description. Call this tool IMMEDIATELY with the filename or path (e.g. filepath="photo.png") whenever the user mentions an image. DO NOT ask for an absolute path.',
     inputSchema: z.object({
-      filepath: z.string().describe('Absolute path of the image file to convert'),
+      filepath: z.string().describe('Filename or path of the image file (e.g. photo.png, ~/Downloads/photo.jpg, or absolute path)'),
     }),
     annotations: {
       readOnlyHint: true,
@@ -123,9 +123,9 @@ export class MarkdownifyTools {
   @Tool({
     name: 'audio-to-markdown',
     title: 'Audio to Markdown',
-    description: 'Convert an audio file to markdown, including transcription if possible',
+    description: 'Convert an audio file to markdown, including speech transcription. Call this tool IMMEDIATELY with the filename or path (e.g. filepath="sample.mp3") whenever the user mentions an audio file. DO NOT ask for an absolute path.',
     inputSchema: z.object({
-      filepath: z.string().describe('Absolute path of the audio file to convert'),
+      filepath: z.string().describe('Filename or path of the audio file (e.g. sample.mp3, ~/Downloads/speech.wav, or absolute path)'),
     }),
     annotations: {
       readOnlyHint: true,
@@ -146,9 +146,9 @@ export class MarkdownifyTools {
   @Tool({
     name: 'docx-to-markdown',
     title: 'DOCX to Markdown',
-    description: 'Convert a DOCX file to markdown',
+    description: 'Convert a DOCX file to markdown. Call this tool IMMEDIATELY with the filename or path (e.g. filepath="doc.docx") whenever the user mentions a DOCX file. DO NOT ask for an absolute path.',
     inputSchema: z.object({
-      filepath: z.string().describe('Absolute path of the DOCX file to convert'),
+      filepath: z.string().describe('Filename or path of the DOCX file (e.g. document.docx, ~/Downloads/doc.docx, or absolute path)'),
     }),
     annotations: {
       readOnlyHint: true,
@@ -169,9 +169,9 @@ export class MarkdownifyTools {
   @Tool({
     name: 'xlsx-to-markdown',
     title: 'XLSX to Markdown',
-    description: 'Convert an XLSX file to markdown',
+    description: 'Convert an XLSX spreadsheet to markdown. Call this tool IMMEDIATELY with the filename or path (e.g. filepath="sheet.xlsx") whenever the user mentions an XLSX file. DO NOT ask for an absolute path.',
     inputSchema: z.object({
-      filepath: z.string().describe('Absolute path of the XLSX file to convert'),
+      filepath: z.string().describe('Filename or path of the XLSX file (e.g. sheet.xlsx, ~/Downloads/data.xlsx, or absolute path)'),
     }),
     annotations: {
       readOnlyHint: true,
@@ -183,7 +183,7 @@ export class MarkdownifyTools {
     const result = await Markdownify.toMarkdown({ filePath: input.filepath });
     return {
       text: result.text,
-      title: 'XLSX Spreadsheet Markdown',
+      title: 'XLSX Document Markdown',
       type: 'xlsx',
       filepath: input.filepath,
     };
@@ -192,9 +192,9 @@ export class MarkdownifyTools {
   @Tool({
     name: 'pptx-to-markdown',
     title: 'PPTX to Markdown',
-    description: 'Convert a PPTX file to markdown',
+    description: 'Convert a PPTX presentation to markdown. Call this tool IMMEDIATELY with the filename or path (e.g. filepath="deck.pptx") whenever the user mentions a PPTX file. DO NOT ask for an absolute path.',
     inputSchema: z.object({
-      filepath: z.string().describe('Absolute path of the PPTX file to convert'),
+      filepath: z.string().describe('Filename or path of the PPTX file (e.g. slides.pptx, ~/Downloads/deck.pptx, or absolute path)'),
     }),
     annotations: {
       readOnlyHint: true,
@@ -206,7 +206,7 @@ export class MarkdownifyTools {
     const result = await Markdownify.toMarkdown({ filePath: input.filepath });
     return {
       text: result.text,
-      title: 'PPTX Presentation Markdown',
+      title: 'PPTX Document Markdown',
       type: 'pptx',
       filepath: input.filepath,
     };
@@ -215,11 +215,11 @@ export class MarkdownifyTools {
   @Tool({
     name: 'git-repo-to-markdown',
     title: 'Git Repo to Markdown',
-    description: 'Convert a git repository into a single markdown document containing the file tree and source code. Supports GitHub URLs and shorthand (e.g. \'owner/repo\').',
+    description: 'Convert a remote git repository to a single markdown file using Repomix. Call this tool IMMEDIATELY with the repo URL or owner/repo shorthand.',
     inputSchema: z.object({
-      url: z.string().describe("Git repository URL or GitHub shorthand (e.g. 'https://github.com/owner/repo' or 'owner/repo')"),
-      branch: z.string().optional().describe('Branch, tag, or commit to use (default: repo default branch)'),
-      compress: z.boolean().optional().describe('Use Tree-sitter compression to reduce output size (~70% reduction). Default: false'),
+      repoUrl: z.string().describe('URL or owner/repo shorthand of the git repository (e.g. owner/repo or https://github.com/owner/repo)'),
+      branch: z.string().optional().describe('Branch name (optional)'),
+      compress: z.boolean().optional().describe('Compress output by removing unnecessary files (optional)'),
     }),
     annotations: {
       readOnlyHint: true,
@@ -228,12 +228,12 @@ export class MarkdownifyTools {
   })
   @Widget('markdownify-result')
   async gitRepoToMarkdown(
-    input: { url: string; branch?: string; compress?: boolean },
-    ctx: ExecutionContext
+    input: { repoUrl: string; branch?: string; compress?: boolean },
+    ctx: ExecutionContext,
   ) {
-    ctx.logger.info('Converting Git repository to markdown', { url: input.url });
+    ctx.logger.info('Converting git repository to markdown', { repoUrl: input.repoUrl });
     const result = await Markdownify.fromRepo({
-      repoUrl: input.url,
+      repoUrl: input.repoUrl,
       branch: input.branch,
       compress: input.compress,
     });
@@ -241,18 +241,16 @@ export class MarkdownifyTools {
       text: result.text,
       title: 'Git Repository Markdown',
       type: 'git-repo',
-      url: input.url,
-      branch: input.branch,
-      compress: input.compress,
+      repoUrl: input.repoUrl,
     };
   }
 
   @Tool({
     name: 'get-markdown-file',
     title: 'Get Markdown File',
-    description: 'Get a markdown file by absolute file path',
+    description: 'Read and return the contents of an existing markdown file. Call this tool IMMEDIATELY with the filename or path (e.g. filepath="notes.md"). DO NOT ask for an absolute path.',
     inputSchema: z.object({
-      filepath: z.string().describe("Absolute path to file of markdown'd text"),
+      filepath: z.string().describe('Filename or path of the markdown file to read'),
     }),
     annotations: {
       readOnlyHint: true,
@@ -264,10 +262,9 @@ export class MarkdownifyTools {
     const result = await Markdownify.get({ filePath: input.filepath });
     return {
       text: result.text,
-      title: 'Markdown File',
-      type: 'get-markdown-file',
+      title: 'Markdown File Contents',
+      type: 'markdown-file',
       filepath: input.filepath,
-      path: result.path,
     };
   }
 }
