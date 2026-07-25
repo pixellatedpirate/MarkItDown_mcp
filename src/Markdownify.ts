@@ -129,12 +129,10 @@ export class Markdownify {
         validateUrl(url);
 
         // Dedicated YouTube handling: normalize YouTube URL to standard watch link
-        // so markitdown's YouTubeConverter activates and extracts title, description & transcript.
         if (isYouTubeUrl(url)) {
           const youtubeUrl = normalizeYouTubeUrl(url);
           const youtubeText = await this._markitdown(youtubeUrl, projectRoot);
 
-          // Check if YouTube output returned raw footer links instead of video metadata/transcript
           const isUselessFooter =
             youtubeText.includes("Google LLC") ||
             (youtubeText.includes("[About]") && !youtubeText.includes("### Video Metadata") && !youtubeText.includes("### Transcript"));
@@ -148,7 +146,7 @@ export class Markdownify {
           return { text: youtubeText };
         }
 
-        // Generic URL handling: try direct markitdown URL converter (e.g. Bing, Wikipedia)
+        // Generic URL handling
         try {
           const directText = await this._markitdown(url, projectRoot);
           if (directText && directText.trim()) {
@@ -177,6 +175,9 @@ export class Markdownify {
       } else if (filePath) {
         const expanded = expandHome(filePath);
         assertPathAllowed(expanded);
+        if (!fs.existsSync(expanded)) {
+          throw new Error(`File does not exist: "${filePath}" (resolved path: "${expanded}")`);
+        }
         const text = await this._markitdown(expanded, projectRoot);
         return { text };
       } else {
@@ -253,21 +254,22 @@ export class Markdownify {
   }: {
     filePath: string;
   }): Promise<MarkdownResult> {
-    const resolvedPath = path.resolve(expandHome(filePath));
+    const expanded = expandHome(filePath);
+    const resolvedPath = path.resolve(expanded);
     if (!isMarkdownFile(resolvedPath)) {
       throw new Error("Required file is not a Markdown file.");
     }
 
     assertPathAllowed(resolvedPath);
 
-    if (!fs.existsSync(filePath)) {
-      throw new Error("File does not exist");
+    if (!fs.existsSync(resolvedPath)) {
+      throw new Error(`File does not exist: "${filePath}" (resolved path: "${resolvedPath}")`);
     }
 
-    const text = await fs.promises.readFile(filePath, "utf-8");
+    const text = await fs.promises.readFile(resolvedPath, "utf-8");
 
     return {
-      path: filePath,
+      path: resolvedPath,
       text: text,
     };
   }

@@ -1,15 +1,31 @@
 import path from "path";
 import os from "os";
 import fs from "fs";
-import { URL } from "node:url";
+import { URL, fileURLToPath } from "node:url";
 import is_ip_private from "private-ip";
 import { isValidRemoteValue } from "repomix";
 
 export function expandHome(filepath: string): string {
-  if (filepath.startsWith("~/") || filepath === "~") {
-    return path.join(os.homedir(), filepath.slice(1));
+  if (!filepath) return "";
+  let cleaned = filepath.trim().replace(/^["']|["']$/g, "");
+
+  // Convert file:// URIs to local OS file paths (crucial for Windows file:///C:/... URIs)
+  if (cleaned.startsWith("file://")) {
+    try {
+      cleaned = fileURLToPath(cleaned);
+    } catch {
+      cleaned = cleaned.replace(/^file:\/\/\/?/, "");
+      if (process.platform === "win32" && /^\/[a-zA-Z]:/.test(cleaned)) {
+        cleaned = cleaned.slice(1);
+      }
+    }
   }
-  return filepath;
+
+  if (cleaned.startsWith("~/") || cleaned === "~") {
+    return path.join(os.homedir(), cleaned.slice(1));
+  }
+
+  return path.normalize(cleaned);
 }
 
 export function resolveMarkitdownPath(projectRoot: string): string {
@@ -103,8 +119,12 @@ export function isMarkdownFile(filePath: string): boolean {
 }
 
 export function isWithinDirectory(filePath: string, directory: string): boolean {
-  const normPath = path.normalize(path.resolve(filePath));
-  const normDir = path.normalize(path.resolve(directory));
+  const normPath = path.normalize(path.resolve(expandHome(filePath)));
+  const normDir = path.normalize(path.resolve(expandHome(directory)));
+  
+  if (process.platform === "win32") {
+    return normPath.toLowerCase().startsWith(normDir.toLowerCase());
+  }
   return normPath.startsWith(normDir);
 }
 

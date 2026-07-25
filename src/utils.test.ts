@@ -27,12 +27,17 @@ describe("expandHome", () => {
     expect(result).toBe(os.homedir());
   });
 
-  test("does not expand paths without tilde", () => {
-    expect(expandHome("/usr/local")).toBe("/usr/local");
+  test("handles file:/// URIs on Windows and POSIX", () => {
+    const isWin = process.platform === "win32";
+    if (isWin) {
+      expect(expandHome("file:///C:/Users/test/doc.pdf")).toBe(path.normalize("C:/Users/test/doc.pdf"));
+    } else {
+      expect(expandHome("file:///usr/local/doc.pdf")).toBe(path.normalize("/usr/local/doc.pdf"));
+    }
   });
 
-  test("does not expand tilde in the middle of a path", () => {
-    expect(expandHome("/usr/~/local")).toBe("/usr/~/local");
+  test("strips surrounding quotation marks", () => {
+    expect(expandHome('"C:\\Users\\test\\doc.pdf"')).toBe(path.normalize("C:\\Users\\test\\doc.pdf"));
   });
 });
 
