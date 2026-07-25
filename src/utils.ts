@@ -260,27 +260,31 @@ export function summarizeShortly(content: string, title?: string): string {
 export function injectObsidianWikilinks(text: string): string {
   if (!text) return text;
 
-  const universalConcepts = [
-    // Programming & Software Engineering
-    'Python', 'Java', 'JavaScript', 'TypeScript', 'C++', 'C#', 'Go', 'Rust', 'Ruby', 'PHP', 'SQL', 'HTML', 'CSS', 'Bash',
+  // Curated, high-value domain concepts across major fields
+  const domainConcepts = [
+    // Programming Languages & Frameworks
+    'Python', 'Java', 'JavaScript', 'TypeScript', 'C++', 'C#', 'Go', 'Rust', 'Ruby', 'PHP', 'SQL', 'HTML', 'CSS', 'Bash', 'React', 'Node.js',
+    // Core Computer Science & Programming Fundamentals
     'Variables', 'Data Types', 'Strings', 'Integers', 'Booleans', 'Floats', 'Arrays', 'Lists', 'Dictionaries', 'Tuples', 'Sets',
     'Functions', 'Methods', 'Loops', 'For Loops', 'While Loops', 'Conditional Logic', 'Recursion', 'Pointers', 'Memory Management',
+    // Object-Oriented Principles
     'OOPS', 'Object-Oriented Programming', 'Encapsulation', 'Abstraction', 'Inheritance', 'Polymorphism', 'Classes', 'Objects', 'Interfaces',
+    // Data Structures & Algorithms
     'Data Structures', 'Algorithms', 'Binary Trees', 'Linked Lists', 'Stacks', 'Queues', 'Hash Tables', 'Graphs', 'Sorting', 'Searching',
-    'Error Handling', 'Exceptions', 'Try Catch', 'Try Except', 'Debugging', 'Testing', 'Unit Tests',
-    'PyCharm', 'VS Code', 'Git', 'GitHub', 'Repository', 'Terminal', 'CLI', 'Obsidian', 'Markdown', 'API', 'REST API', 'JSON', 'HTTP', 'YouTube', 'PDF',
-    // Science, Technology & AI
-    'Artificial Intelligence', 'Machine Learning', 'Deep Learning', 'Neural Networks', 'Large Language Models', 'Data Science', 'Physics', 'Mathematics', 'Chemistry', 'Biology',
-    // Business, Design & Architecture
-    'Architecture', 'System Design', 'Project Management', 'Agile', 'Scrum', 'Database', 'Cloud Computing', 'Security', 'Authentication', 'DevOps', 'CI/CD',
-    // General Topics & Research
-    'Research', 'Lecture', 'Tutorial', 'Documentation', 'Study Guide', 'Executive Summary', 'Key Points', 'Notes', 'Overview'
+    // Software Engineering & Architecture
+    'System Design', 'Software Architecture', 'Design Patterns', 'API', 'REST API', 'JSON', 'HTTP', 'Database', 'Cloud Computing', 'DevOps', 'CI/CD', 'Security',
+    // AI, Data Science & Tech
+    'Artificial Intelligence', 'Machine Learning', 'Deep Learning', 'Neural Networks', 'Large Language Models', 'Data Science', 'Data Analysis',
+    // Hard Sciences & Math
+    'Quantum Computing', 'Physics', 'Mathematics', 'Calculus', 'Linear Algebra', 'Statistics', 'Probability', 'Chemistry', 'Biology',
+    // Tools & Platforms
+    'PyCharm', 'VS Code', 'Git', 'GitHub', 'Obsidian', 'Markdown'
   ];
 
   let result = text;
   const presentConcepts = new Set<string>();
 
-  for (const concept of universalConcepts) {
+  for (const concept of domainConcepts) {
     const escaped = concept.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
     const regex = new RegExp(`(?<!\\[\\[|\\w)${escaped}(?!\\]\\]|\\w)`, 'i');
     if (regex.test(result)) {
@@ -289,24 +293,9 @@ export function injectObsidianWikilinks(text: string): string {
     }
   }
 
-  // Dynamic Capitalized Term Auto-Wikilinker for any domain (Science, History, Tech, Business, Personal)
-  const capitalizedTermRegex = /(?<!\\[\\[|\\w|#|#\s)(?:\b[A-Z][a-z0-9]+(?:\s+[A-Z][a-z0-9]+)*\b)(?!\\]\\]|\\w)/g;
-  const matches = Array.from(result.matchAll(capitalizedTermRegex));
-
-  const excluded = new Set(['The', 'This', 'That', 'With', 'From', 'Have', 'Which', 'Your', 'About', 'There', 'Their', 'Would', 'Could', 'Should', 'Other', 'First', 'These', 'Where', 'After', 'Being', 'Under', 'Note', 'URL', 'Channel', 'Title', 'Keywords', 'Executive', 'Summary', 'Full', 'Transcript', 'Click', 'Answer', 'Explanation', 'Correct']);
-
-  for (const match of matches) {
-    const term = match[0].trim();
-    if (term.length >= 4 && !excluded.has(term) && !presentConcepts.has(term)) {
-      const escapedTerm = term.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-      const termRegex = new RegExp(`(?<!\\[\\[|\\w)${escapedTerm}(?!\\]\\]|\\w)`, 'g');
-      result = result.replace(termRegex, `[[${term}]]`);
-      presentConcepts.add(term);
-    }
-  }
-
-  if (!result.includes('Knowledge Graph Links') && presentConcepts.size > 0) {
-    const topLinks = Array.from(presentConcepts).slice(0, 15).map((c) => `[[${c}]]`).join(' • ');
+  // Only append Knowledge Graph Links footer if 2 or more genuine domain concepts are present
+  if (!result.includes('Knowledge Graph Links') && presentConcepts.size >= 2) {
+    const topLinks = Array.from(presentConcepts).map((c) => `[[${c}]]`).join(' • ');
     const linksHeader = `\n\n## 🕸️ Knowledge Graph Links\n${topLinks}\n`;
     result += linksHeader;
   }
