@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "mcp-markdownify-server": {
+      "command": "cmd.exe",
+      "args": [
+        "/c",
+        "npm",
+        "run",
+        "dev"
+      ],
+      "cwd": "C:/Users/Bharath/Downloads/pirate/markdownify-mcp"
+    }
+  }
+}
