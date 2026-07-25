@@ -6,6 +6,7 @@ try {
   } else {
     execSync('bash ./setup.sh', { stdio: 'inherit' });
   }
+  execSync('node scripts/patch-markitdown.js', { stdio: 'inherit' });
 } catch (e) {
   console.warn('Preinstall setup notice: Python virtual environment setup warning:', e.message);
 }

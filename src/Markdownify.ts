@@ -36,7 +36,16 @@ export class Markdownify {
     const venvBinDir = path.dirname(markitdownPath);
     const env = {
       ...process.env,
-      PATH: `${venvBinDir}${path.delimiter}${process.env.PATH || ""}`,
+      PATH: [
+        venvBinDir,
+        "/opt/homebrew/bin",
+        "/usr/local/bin",
+        "/usr/bin",
+        "/bin",
+        process.env.PATH || "",
+      ]
+        .filter(Boolean)
+        .join(path.delimiter),
     };
 
     let stdout: string;

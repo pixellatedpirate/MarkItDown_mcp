@@ -5,7 +5,7 @@ export class MarkdownifyTools {
   @Tool({
     name: 'youtube-to-markdown',
     title: 'YouTube to Markdown',
-    description: 'Convert a YouTube video to markdown, including transcript if available. Call this tool IMMEDIATELY with the video URL.',
+    description: 'Convert a YouTube video to markdown, including full video transcript and metadata. Call this tool IMMEDIATELY with the video URL whenever the user mentions a YouTube video or link.',
     inputSchema: z.object({
       url: z.string().describe('URL of the YouTube video'),
     }),
@@ -29,7 +29,7 @@ export class MarkdownifyTools {
   @Tool({
     name: 'pdf-to-markdown',
     title: 'PDF to Markdown',
-    description: 'Convert a PDF file to markdown. Call this tool IMMEDIATELY with the filename or path (e.g. filepath="gg.pdf") whenever the user mentions a PDF or attached file. DO NOT ask the user for an absolute path; the server automatically locates files in Downloads, Desktop, Documents, or current folder.',
+    description: 'DIRECTLY convert any PDF document (.pdf) to markdown text! Call this tool IMMEDIATELY with the filename or path (e.g. filepath="gg.pdf") whenever the user mentions a PDF or attached file. DO NOT ask the user for an absolute path or refuse; the server automatically locates files in Downloads, Desktop, Documents, or current folder.',
     inputSchema: z.object({
       filepath: z.string().describe('Filename or path of the PDF file (e.g. gg.pdf, ~/Downloads/gg.pdf, or absolute path)'),
     }),
@@ -100,7 +100,7 @@ export class MarkdownifyTools {
   @Tool({
     name: 'image-to-markdown',
     title: 'Image to Markdown',
-    description: 'Convert an image to markdown, including metadata and description. Call this tool IMMEDIATELY with the filename or path (e.g. filepath="photo.png") whenever the user mentions an image. DO NOT ask for an absolute path.',
+    description: 'DIRECTLY convert any image file (.png, .jpg, .jpeg) to markdown description! Call this tool IMMEDIATELY with the filename or path (e.g. filepath="photo.png") whenever the user mentions an image. DO NOT ask for an absolute path or refuse.',
     inputSchema: z.object({
       filepath: z.string().describe('Filename or path of the image file (e.g. photo.png, ~/Downloads/photo.jpg, or absolute path)'),
     }),
@@ -122,10 +122,10 @@ export class MarkdownifyTools {
 
   @Tool({
     name: 'audio-to-markdown',
-    title: 'Audio to Markdown',
-    description: 'Convert an audio file to markdown, including speech transcription. Call this tool IMMEDIATELY with the filename or path (e.g. filepath="sample.mp3") whenever the user mentions an audio file. DO NOT ask for an absolute path.',
+    title: 'Audio to Markdown with Speech Transcription',
+    description: 'DIRECTLY transcribe and convert any audio file (.mp3, .wav, .m4a, .mp4) to markdown text using built-in speech recognition! Call this tool IMMEDIATELY with the filename or path (e.g. filepath="sample_audio.mp3") whenever the user asks to transcribe, read, or convert an audio file. DO NOT tell the user to convert the audio manually or ask for another format; this tool handles MP3/WAV audio transcription directly.',
     inputSchema: z.object({
-      filepath: z.string().describe('Filename or path of the audio file (e.g. sample.mp3, ~/Downloads/speech.wav, or absolute path)'),
+      filepath: z.string().describe('Filename or path of the audio file to transcribe (e.g. sample_audio.mp3, ~/Downloads/sample_audio.mp3, or absolute path)'),
     }),
     annotations: {
       readOnlyHint: true,
@@ -146,7 +146,7 @@ export class MarkdownifyTools {
   @Tool({
     name: 'docx-to-markdown',
     title: 'DOCX to Markdown',
-    description: 'Convert a DOCX file to markdown. Call this tool IMMEDIATELY with the filename or path (e.g. filepath="doc.docx") whenever the user mentions a DOCX file. DO NOT ask for an absolute path.',
+    description: 'DIRECTLY convert any DOCX document (.docx) to markdown text! Call this tool IMMEDIATELY with the filename or path (e.g. filepath="doc.docx") whenever the user mentions a DOCX file. DO NOT ask for an absolute path or refuse.',
     inputSchema: z.object({
       filepath: z.string().describe('Filename or path of the DOCX file (e.g. document.docx, ~/Downloads/doc.docx, or absolute path)'),
     }),
@@ -169,7 +169,7 @@ export class MarkdownifyTools {
   @Tool({
     name: 'xlsx-to-markdown',
     title: 'XLSX to Markdown',
-    description: 'Convert an XLSX spreadsheet to markdown. Call this tool IMMEDIATELY with the filename or path (e.g. filepath="sheet.xlsx") whenever the user mentions an XLSX file. DO NOT ask for an absolute path.',
+    description: 'DIRECTLY convert any XLSX spreadsheet (.xlsx) to markdown table text! Call this tool IMMEDIATELY with the filename or path (e.g. filepath="sheet.xlsx") whenever the user mentions an XLSX file. DO NOT ask for an absolute path or refuse.',
     inputSchema: z.object({
       filepath: z.string().describe('Filename or path of the XLSX file (e.g. sheet.xlsx, ~/Downloads/data.xlsx, or absolute path)'),
     }),
@@ -192,7 +192,7 @@ export class MarkdownifyTools {
   @Tool({
     name: 'pptx-to-markdown',
     title: 'PPTX to Markdown',
-    description: 'Convert a PPTX presentation to markdown. Call this tool IMMEDIATELY with the filename or path (e.g. filepath="deck.pptx") whenever the user mentions a PPTX file. DO NOT ask for an absolute path.',
+    description: 'DIRECTLY convert any PPTX presentation (.pptx) to markdown text! Call this tool IMMEDIATELY with the filename or path (e.g. filepath="slides.pptx") whenever the user mentions a PPTX file. DO NOT ask for an absolute path or refuse.',
     inputSchema: z.object({
       filepath: z.string().describe('Filename or path of the PPTX file (e.g. slides.pptx, ~/Downloads/deck.pptx, or absolute path)'),
     }),
