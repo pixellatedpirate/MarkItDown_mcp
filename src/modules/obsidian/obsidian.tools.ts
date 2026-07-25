@@ -108,6 +108,34 @@ export class ObsidianTools {
   }
 
   @Tool({
+    name: 'obsidian-fill-uncreated-links',
+    title: 'Auto-Fill Uncreated Linked Notes in Obsidian Vault',
+    description: 'Find all uncreated/empty [[Wikilinks]] inside an existing Obsidian note and automatically generate structured study notes for each ghost link, expanding your Knowledge Graph!',
+    inputSchema: z.object({
+      filename: z.string().describe('Filename of the note containing [[Wikilinks]] to populate (e.g. "OOPS Concepts Study Guide.md")'),
+    }),
+    annotations: {
+      readOnlyHint: false,
+    },
+  })
+  async fillUncreatedLinks(
+    input: {
+      filename: string;
+    },
+    ctx: ExecutionContext,
+  ) {
+    ctx.logger.info('Auto-filling uncreated linked notes in Obsidian Vault', { filename: input.filename });
+    const content = await this.obsidianService.getNote(input.filename);
+    const createdNotes = await this.obsidianService.fillUncreatedLinkedFiles(content, input.filename);
+    return {
+      success: true,
+      parentNote: input.filename,
+      createdNotesCount: createdNotes.length,
+      createdNotes,
+    };
+  }
+
+  @Tool({
     name: 'obsidian-save-note',
     title: 'Save Note to Obsidian Vault',
     description: 'Save or update a Markdown note directly inside your local Obsidian Vault or via Local REST API.',

@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import dotenv from 'dotenv';
-import { expandHome } from '../../utils.js';
+import { expandHome, generateTopicNoteMarkdown } from '../../utils.js';
 
 dotenv.config();
 
@@ -136,23 +136,34 @@ export class ObsidianService {
     try {
       const allFiles = await this.listFiles();
       const currentBase = path.basename(currentFilename, '.md').toLowerCase();
-      const relatedNotes: { title: string; sharedConcepts: string[] }[] = [];
-
       const currentLower = content.toLowerCase();
+
+      let enhancedContent = content;
+      const existingTitles: string[] = [];
 
       for (const file of allFiles) {
         if (file.isDir || !file.name.endsWith('.md')) continue;
         const noteTitle = path.basename(file.name, '.md');
         if (noteTitle.toLowerCase() === currentBase) continue;
+        existingTitles.push(noteTitle);
 
+        const regex = new RegExp(`(?<!\\[\\[|\\w)${noteTitle.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}(?!\\]\\]|\\w)`, 'gi');
+        if (regex.test(enhancedContent)) {
+          enhancedContent = enhancedContent.replace(regex, `[[${noteTitle}]]`);
+        }
+      }
+
+      const relatedNotes: { title: string; sharedConcepts: string[] }[] = [];
+      for (const title of existingTitles) {
         try {
-          const noteContent = await this.getNote(file.path);
+          const noteContent = await this.getNote(title);
           const noteLower = noteContent.toLowerCase();
 
           const commonKeywords = [
-            'python', 'java', 'javascript', 'typescript', 'variables', 'data types',
+            'python', 'java', 'c', 'cpp', 'javascript', 'typescript', 'variables', 'data types',
             'strings', 'integers', 'booleans', 'lists', 'functions', 'loops',
             'conditional logic', 'error handling', 'exceptions', 'math', 'pycharm',
+            'oops', 'encapsulation', 'abstraction', 'inheritance', 'polymorphism',
             'editor', 'code', 'array', 'object', 'class', 'method', 'api'
           ];
 
@@ -160,9 +171,9 @@ export class ObsidianService {
             (kw) => currentLower.includes(kw) && noteLower.includes(kw)
           );
 
-          if (shared.length >= 2) {
+          if (shared.length >= 1) {
             relatedNotes.push({
-              title: noteTitle,
+              title,
               sharedConcepts: shared.slice(0, 4),
             });
           }
@@ -171,23 +182,50 @@ export class ObsidianService {
         }
       }
 
-      if (relatedNotes.length === 0) {
-        return content;
+      if (relatedNotes.length > 0 && !enhancedContent.includes('Interconnected Knowledge Graph & Vault Links')) {
+        const graphSection = [
+          `\n\n## 🕸️ Interconnected Knowledge Graph & Vault Links`,
+          `### 🔗 Related Notes in Vault`,
+          ...relatedNotes.map(
+            (r) => `- [[${r.title}]] *(Shares: ${r.sharedConcepts.join(', ')})*`
+          ),
+          ``
+        ].join('\n');
+
+        enhancedContent = `${enhancedContent}${graphSection}`;
       }
 
-      const graphSection = [
-        `\n\n## 🕸️ Interconnected Knowledge Graph & Vault Links`,
-        `### 🔗 Related Notes in Vault`,
-        ...relatedNotes.map(
-          (r) => `- [[${r.title}]] *(Shares: ${r.sharedConcepts.join(', ')})*`
-        ),
-        ``
-      ].join('\n');
-
-      return `${content}${graphSection}`;
+      return enhancedContent;
     } catch {
       return content;
     }
+  }
+
+  public async fillUncreatedLinkedFiles(content: string, parentTitle: string): Promise<string[]> {
+    const filledNotes: string[] = [];
+    const wikilinkRegex = /\[\[([^\x5d|#]+)(?:\|[^\x5d]+)?\]\]/g;
+    const matches = Array.from(content.matchAll(wikilinkRegex));
+
+    const parentBase = path.basename(parentTitle, '.md').toLowerCase();
+
+    for (const match of matches) {
+      const linkTitle = match[1].trim();
+      if (!linkTitle || linkTitle.toLowerCase() === parentBase) continue;
+
+      const notePath = this.resolveNotePath(linkTitle);
+      if (!fs.existsSync(notePath)) {
+        try {
+          const generatedContent = generateTopicNoteMarkdown(linkTitle);
+          const contentWithParentLink = `${generatedContent}\n\n## 🔗 Referencing Notes\n- [[${parentTitle}]]\n`;
+          await fs.promises.writeFile(notePath, contentWithParentLink, 'utf-8');
+          filledNotes.push(linkTitle);
+        } catch {
+          // Ignore write errors
+        }
+      }
+    }
+
+    return filledNotes;
   }
 
   async saveNote(filename: string, content: string, tags?: string[]): Promise<string> {
@@ -206,6 +244,7 @@ export class ObsidianService {
           body: finalContent,
         });
         if (res.ok) {
+          await this.fillUncreatedLinkedFiles(finalContent, path.basename(filename, '.md'));
           return filename;
         }
       } catch {
@@ -220,6 +259,8 @@ export class ObsidianService {
     }
 
     await fs.promises.writeFile(notePath, finalContent, 'utf-8');
+    await this.fillUncreatedLinkedFiles(finalContent, path.basename(filename, '.md'));
+
     return notePath;
   }
 
