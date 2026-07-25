@@ -1,7 +1,7 @@
 {
   "name": "mcp-markdownify-server",
-  "version": "1.1.0",
-  "description": "MCP Markdownify Server - NitroStack Compatible Model Context Protocol Server for Converting Almost Anything to Markdown",
+  "version": "1.2.0",
+  "description": "MCP Markdownify Server - NitroStack Compatible Model Context Protocol Server for Converting Almost Anything to Markdown & Obsidian Vault Integration",
   "license": "MIT",
   "author": "@zcaceres (@zachcaceres | zach.dev)",
   "homepage": "https://github.com/zcaceres/markdownify-mcp",
@@ -14,7 +14,8 @@
     "dist",
     "preinstall.js",
     "setup.sh",
-    "setup.bat"
+    "setup.bat",
+    "scripts"
   ],
   "scripts": {
     "dev": "nitrostack-cli dev",
@@ -25,6 +26,7 @@
     "install:all": "nitrostack-cli install",
     "widget": "npm --prefix src/widgets",
     "preinstall": "node preinstall.js",
+    "postinstall": "node preinstall.js",
     "prepublishOnly": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest"

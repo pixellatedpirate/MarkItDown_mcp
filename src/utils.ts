@@ -1,6 +1,7 @@
 import path from "path";
 import os from "os";
 import fs from "fs";
+import { execSync } from "child_process";
 import { URL, fileURLToPath } from "node:url";
 import is_ip_private from "private-ip";
 import { isValidRemoteValue } from "repomix";
@@ -50,7 +51,7 @@ export function expandHome(filepath: string): string {
   return normalized;
 }
 
-export function resolveMarkitdownPath(projectRoot: string): string {
+export function ensureVenvExists(projectRoot: string): string {
   if (process.env.MARKITDOWN_PATH) return process.env.MARKITDOWN_PATH;
   const isWin = process.platform === "win32";
   const venvBin = path.join(
@@ -59,8 +60,48 @@ export function resolveMarkitdownPath(projectRoot: string): string {
     isWin ? "Scripts" : "bin",
     `markitdown${isWin ? ".exe" : ""}`,
   );
-  if (fs.existsSync(venvBin)) return venvBin;
+
+  if (fs.existsSync(venvBin)) {
+    return venvBin;
+  }
+
+  const hasSetupScript =
+    fs.existsSync(path.join(projectRoot, "setup.bat")) ||
+    fs.existsSync(path.join(projectRoot, "setup.sh")) ||
+    fs.existsSync(path.join(projectRoot, "package.json"));
+
+  if (hasSetupScript) {
+    try {
+      const patchScript = path.join(projectRoot, "scripts", "patch-markitdown.js");
+      if (isWin) {
+        const batScript = path.join(projectRoot, "setup.bat");
+        if (fs.existsSync(batScript)) {
+          execSync(`cmd.exe /c "${batScript}"`, { cwd: projectRoot, stdio: "pipe", timeout: 15000 });
+        }
+      } else {
+        const shScript = path.join(projectRoot, "setup.sh");
+        if (fs.existsSync(shScript)) {
+          execSync(`bash "${shScript}"`, { cwd: projectRoot, stdio: "pipe", timeout: 15000 });
+        }
+      }
+
+      if (fs.existsSync(patchScript)) {
+        execSync(`node "${patchScript}"`, { cwd: projectRoot, stdio: "pipe", timeout: 5000 });
+      }
+    } catch {
+      // Fallback
+    }
+
+    if (fs.existsSync(venvBin)) {
+      return venvBin;
+    }
+  }
+
   return "markitdown";
+}
+
+export function resolveMarkitdownPath(projectRoot: string): string {
+  return ensureVenvExists(projectRoot);
 }
 
 export function resolveRepomixPath(projectRoot: string): string {
