@@ -27,6 +27,8 @@ describe('AppModule NitroStack Server', () => {
     const tools = extractTools(ObsidianTools);
     const toolNames = tools.map((t) => t.options.name);
 
+    expect(toolNames).toContain('obsidian-generate-quiz');
+    expect(toolNames).toContain('obsidian-show-graph');
     expect(toolNames).toContain('obsidian-convert-and-save');
     expect(toolNames).toContain('obsidian-generate-topic-note');
     expect(toolNames).toContain('obsidian-fill-uncreated-links');
@@ -37,7 +39,7 @@ describe('AppModule NitroStack Server', () => {
     expect(toolNames).toContain('obsidian-patch-note');
     expect(toolNames).toContain('obsidian-search-notes');
     expect(toolNames).toContain('obsidian-delete-note');
-    expect(tools.length).toBe(10);
+    expect(tools.length).toBe(12);
   });
 
   test('creates McpApplicationFactory instance without error', async () => {

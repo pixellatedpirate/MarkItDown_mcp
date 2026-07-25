@@ -7,6 +7,65 @@ export class ObsidianTools {
   private obsidianService = new ObsidianService();
 
   @Tool({
+    name: 'obsidian-generate-quiz',
+    title: 'Generate Practice Quiz & Exam from Obsidian Vault Notes',
+    description: 'DIRECTLY scan your Obsidian Vault notes on any topic (e.g. "programming", "python", "oops", "java", or all notes), analyze key concepts, syntax, and definitions, and generate an interactive Practice Exam/Quiz with MCQs, code prediction questions, answer keys, and source note Wikilinks saved straight to your vault!',
+    inputSchema: z.object({
+      topic: z.string().optional().describe('Topic or keyword to filter notes (e.g. "programming", "oops", "python", or leave empty for all notes)'),
+      numQuestions: z.number().optional().default(5).describe('Number of practice questions to generate (default: 5)'),
+      title: z.string().optional().describe('Optional custom title for the quiz note (e.g. "Programming Knowledge Practice Exam")'),
+    }),
+    annotations: {
+      readOnlyHint: false,
+    },
+  })
+  @Widget('markdownify-result')
+  async generateQuiz(
+    input: {
+      topic?: string;
+      numQuestions?: number;
+      title?: string;
+    },
+    ctx: ExecutionContext,
+  ) {
+    ctx.logger.info('Generating practice quiz from Obsidian Vault notes', { topic: input.topic });
+    const quiz = await this.obsidianService.generateQuizFromVault(input.topic, input.numQuestions, input.title);
+    return {
+      success: true,
+      title: input.title || 'Practice Exam',
+      savedPath: quiz.savedPath,
+      sourceNotesCount: quiz.sourceNotes.length,
+      text: quiz.text,
+    };
+  }
+
+  @Tool({
+    name: 'obsidian-show-graph',
+    title: 'Show Full Obsidian Vault Knowledge Graph',
+    description: 'DIRECTLY render your full Obsidian Vault Knowledge Graph interactively inside the MCP Client UI widget! Shows all vault notes, concept links, and inter-note connections without creating or converting any new notes.',
+    inputSchema: z.object({}),
+    annotations: {
+      readOnlyHint: true,
+    },
+  })
+  @Widget('markdownify-result')
+  async showGraph(
+    _input: Record<string, never>,
+    ctx: ExecutionContext,
+  ) {
+    ctx.logger.info('Rendering full Obsidian Vault Knowledge Graph');
+    const graph = await this.obsidianService.getFullVaultGraph();
+    return {
+      success: true,
+      type: 'obsidian-graph',
+      title: 'Obsidian Vault Graph View',
+      text: graph.text,
+      noteCount: graph.noteCount,
+      linkCount: graph.linkCount,
+    };
+  }
+
+  @Tool({
     name: 'obsidian-convert-and-save',
     title: 'Convert & Save Directly to Obsidian Vault as Short Summary',
     description: 'DIRECTLY convert OR summarize any PDF, YouTube video, Audio transcript, Webpage, or Office file into Markdown AND save it straight into your Obsidian Vault as a neat, short note with key points! Defaults to mode="summary_only" for concise structured summaries.',
