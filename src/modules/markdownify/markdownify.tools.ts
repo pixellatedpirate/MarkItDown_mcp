@@ -3,6 +3,48 @@ import { Markdownify } from '../../Markdownify.js';
 
 export class MarkdownifyTools {
   @Tool({
+    name: 'markdownify',
+    title: 'Markdownify (Convert Any File, Audio, Document, or URL to Markdown)',
+    description: 'DIRECTLY convert OR transcribe ANY file (PDF, DOCX, XLSX, PPTX, Image, Audio .mp3/.wav/.m4a, Markdown) or URL (Webpage, YouTube video, Bing search, Git repository) to Markdown! Call this tool IMMEDIATELY whenever the user asks to convert, read, or transcribe any file or link (e.g. filepath="sample_audio.mp3", filepath="gg.pdf", url="..."). DO NOT tell the user to convert files manually; this tool automatically handles all document formats and audio transcription natively.',
+    inputSchema: z.object({
+      filepath: z.string().optional().describe('Path or filename of any local file to convert/transcribe (e.g. sample_audio.mp3, gg.pdf, document.docx)'),
+      url: z.string().optional().describe('URL of any webpage, YouTube video, or Git repo to convert'),
+    }),
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+    },
+  })
+  @Widget('markdownify-result')
+  async markdownify(input: { filepath?: string; url?: string }, ctx: ExecutionContext) {
+    ctx.logger.info('Converting target to markdown via markdownify tool', { filepath: input.filepath, url: input.url });
+    const result = await Markdownify.toMarkdown({ filePath: input.filepath, url: input.url });
+    return {
+      text: result.text,
+      title: input.filepath ? `Markdownify: ${input.filepath}` : `Markdownify: ${input.url}`,
+      type: 'markdownify',
+      filepath: input.filepath,
+      url: input.url,
+    };
+  }
+
+  @Tool({
+    name: 'transcribe-audio',
+    title: 'Transcribe Audio to Text Markdown',
+    description: 'DIRECTLY transcribe any audio file (.mp3, .wav, .m4a, .mp4) to text markdown using speech recognition! Call this tool IMMEDIATELY with the filename (e.g. filepath="sample_audio.mp3") whenever the user mentions an audio file or transcript.',
+    inputSchema: z.object({
+      filepath: z.string().describe('Path or filename of the audio file to transcribe (e.g. sample_audio.mp3, ~/Downloads/sample_audio.mp3)'),
+    }),
+    annotations: {
+      readOnlyHint: true,
+    },
+  })
+  @Widget('markdownify-result')
+  async transcribeAudioTool(input: { filepath: string }, ctx: ExecutionContext) {
+    return this.audioToMarkdown(input, ctx);
+  }
+
+  @Tool({
     name: 'youtube-to-markdown',
     title: 'YouTube to Markdown',
     description: 'Convert a YouTube video to markdown, including full video transcript and metadata. Call this tool IMMEDIATELY with the video URL whenever the user mentions a YouTube video or link.',

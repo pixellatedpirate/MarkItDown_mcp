@@ -8,6 +8,8 @@ describe('AppModule NitroStack Server', () => {
     const tools = extractTools(MarkdownifyTools);
     const toolNames = tools.map((t) => t.options.name);
     
+    expect(toolNames).toContain('markdownify');
+    expect(toolNames).toContain('transcribe-audio');
     expect(toolNames).toContain('youtube-to-markdown');
     expect(toolNames).toContain('pdf-to-markdown');
     expect(toolNames).toContain('bing-search-to-markdown');
@@ -19,7 +21,7 @@ describe('AppModule NitroStack Server', () => {
     expect(toolNames).toContain('pptx-to-markdown');
     expect(toolNames).toContain('git-repo-to-markdown');
     expect(toolNames).toContain('get-markdown-file');
-    expect(tools.length).toBe(11);
+    expect(tools.length).toBe(13);
   });
 
   test('creates McpApplicationFactory instance without error', async () => {
