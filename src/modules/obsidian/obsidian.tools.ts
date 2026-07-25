@@ -1,19 +1,21 @@
 import { ToolDecorator as Tool, Widget, ExecutionContext, z } from '@nitrostack/core';
 import { ObsidianService } from './obsidian.service.js';
 import { Markdownify } from '../../Markdownify.js';
+import { summarizeMarkdownContent, summarizeShortly } from '../../utils.js';
 
 export class ObsidianTools {
   private obsidianService = new ObsidianService();
 
   @Tool({
     name: 'obsidian-convert-and-save',
-    title: 'Convert & Save Directly to Obsidian Vault',
-    description: 'DIRECTLY convert any PDF, YouTube video, Audio transcript, Webpage, or Office file into Markdown AND save it straight into your Obsidian Vault as a new note in 1 single step! Call this tool whenever the user asks to save converted content to Obsidian.',
+    title: 'Convert & Save Directly to Obsidian Vault as Short Summary',
+    description: 'DIRECTLY convert OR summarize any PDF, YouTube video, Audio transcript, Webpage, or Office file into Markdown AND save it straight into your Obsidian Vault as a neat, short note with key points! Defaults to mode="summary_only" for concise structured summaries.',
     inputSchema: z.object({
-      title: z.string().describe('Name of the note to create in Obsidian (e.g. "Rick Astley Transcript" or "Project Specs")'),
-      filepath: z.string().optional().describe('Filename or path of any local file to convert/transcribe (e.g. sample_audio.mp3, gg.pdf, document.docx)'),
-      url: z.string().optional().describe('URL of any YouTube video or webpage to convert'),
-      tags: z.array(z.string()).optional().describe('Optional tags for Obsidian (e.g. ["youtube", "transcript"])'),
+      title: z.string().describe('Name of the note to create in Obsidian (e.g. "AI Research Lecture" or "Project Specs")'),
+      filepath: z.string().optional().describe('Filename or path of local file to convert/transcribe (e.g. sample_audio.mp3, gg.pdf)'),
+      url: z.string().optional().describe('URL of YouTube video or webpage to convert'),
+      mode: z.enum(['summary_only', 'summary_and_full', 'full_transcript']).optional().default('summary_only').describe('Output mode: "summary_only" (short neat summary with key points), "summary_and_full" (summary + transcript), or "full_transcript" (raw transcript). Default: "summary_only"'),
+      tags: z.array(z.string()).optional().describe('Optional tags for Obsidian (e.g. ["youtube", "summary"])'),
     }),
     annotations: {
       readOnlyHint: false,
@@ -21,13 +23,20 @@ export class ObsidianTools {
   })
   @Widget('markdownify-result')
   async convertAndSave(
-    input: { title: string; filepath?: string; url?: string; tags?: string[] },
+    input: {
+      title: string;
+      filepath?: string;
+      url?: string;
+      mode?: 'summary_only' | 'summary_and_full' | 'full_transcript';
+      tags?: string[];
+    },
     ctx: ExecutionContext,
   ) {
     ctx.logger.info('Converting and saving directly to Obsidian Vault', {
       title: input.title,
       filepath: input.filepath,
       url: input.url,
+      mode: input.mode,
     });
 
     const conversion = await Markdownify.toMarkdown({
@@ -35,14 +44,23 @@ export class ObsidianTools {
       url: input.url,
     });
 
+    const outputMode = input.mode || 'summary_only';
+    let finalContent = conversion.text;
+
+    if (outputMode === 'summary_only') {
+      finalContent = summarizeShortly(conversion.text, input.title);
+    } else if (outputMode === 'summary_and_full') {
+      finalContent = summarizeMarkdownContent(conversion.text);
+    }
+
     const savedPath = await this.obsidianService.saveNote(
       input.title,
-      conversion.text,
+      finalContent,
       input.tags,
     );
 
     return {
-      text: `✅ Successfully converted and saved to Obsidian Vault!\n\nNote Path: ${savedPath}\n\n---\n\n${conversion.text}`,
+      text: `✅ Successfully summarized key points and saved to Obsidian Vault!\n\nNote Path: ${savedPath}\n\n---\n\n${finalContent}`,
       title: `Saved to Obsidian: ${input.title}`,
       type: 'obsidian-saved',
       filepath: savedPath,
