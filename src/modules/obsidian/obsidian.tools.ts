@@ -1,7 +1,7 @@
 import { ToolDecorator as Tool, Widget, ExecutionContext, z } from '@nitrostack/core';
 import { ObsidianService } from './obsidian.service.js';
 import { Markdownify } from '../../Markdownify.js';
-import { summarizeMarkdownContent, summarizeShortly } from '../../utils.js';
+import { summarizeMarkdownContent, summarizeShortly, generateTopicNoteMarkdown } from '../../utils.js';
 
 export class ObsidianTools {
   private obsidianService = new ObsidianService();
@@ -53,28 +53,68 @@ export class ObsidianTools {
       finalContent = summarizeMarkdownContent(conversion.text);
     }
 
+    const savedPath = await this.obsidianService.saveNote(input.title, finalContent, input.tags);
+
+    return {
+      success: true,
+      title: input.title,
+      mode: outputMode,
+      savedPath,
+      text: finalContent,
+    };
+  }
+
+  @Tool({
+    name: 'obsidian-generate-topic-note',
+    title: 'Generate Topic Study Note Directly in Obsidian Vault',
+    description: 'DIRECTLY generate comprehensive, structured Markdown study notes on ANY topic (e.g. "OOPS Concept", "System Design", "Data Structures", "Quantum Computing") AND save it straight into your Obsidian Vault with code examples, key pillars, executive summary, and automatic Knowledge Graph Wikilinks!',
+    inputSchema: z.object({
+      topic: z.string().describe('Topic or subject name (e.g. "OOPS Concept", "REST API Design", "Data Structures")'),
+      title: z.string().optional().describe('Optional custom title for the note (defaults to topic name)'),
+      tags: z.array(z.string()).optional().describe('Optional tags for Obsidian (e.g. ["oops", "programming", "notes"])'),
+    }),
+    annotations: {
+      readOnlyHint: false,
+    },
+  })
+  @Widget('markdownify-result')
+  async generateTopicNote(
+    input: {
+      topic: string;
+      title?: string;
+      tags?: string[];
+    },
+    ctx: ExecutionContext,
+  ) {
+    const noteTitle = input.title || input.topic;
+    ctx.logger.info('Generating topic study note for Obsidian Vault', {
+      topic: input.topic,
+      title: noteTitle,
+    });
+
+    const noteMarkdown = generateTopicNoteMarkdown(input.topic, noteTitle);
     const savedPath = await this.obsidianService.saveNote(
-      input.title,
-      finalContent,
-      input.tags,
+      noteTitle,
+      noteMarkdown,
+      input.tags || [input.topic.toLowerCase().replace(/\s+/g, '-')],
     );
 
     return {
-      text: `✅ Successfully summarized key points and saved to Obsidian Vault!\n\nNote Path: ${savedPath}\n\n---\n\n${finalContent}`,
-      title: `Saved to Obsidian: ${input.title}`,
-      type: 'obsidian-saved',
-      filepath: savedPath,
+      success: true,
+      filename: noteTitle,
+      savedPath,
+      text: noteMarkdown,
     };
   }
 
   @Tool({
     name: 'obsidian-save-note',
     title: 'Save Note to Obsidian Vault',
-    description: 'Save or create a Markdown note directly in your Obsidian Vault with optional tags.',
+    description: 'Save or update a Markdown note directly inside your local Obsidian Vault or via Local REST API.',
     inputSchema: z.object({
-      filename: z.string().describe('Name of the note (e.g. "Meeting Notes.md" or "Project Ideas")'),
-      content: z.string().describe('Markdown text content of the note'),
-      tags: z.array(z.string()).optional().describe('Optional tags to prepend (e.g. ["ideas", "hackathon"])'),
+      filename: z.string().describe('Filename or relative path in vault (e.g. "My Note.md" or "Projects/Specs.md")'),
+      content: z.string().describe('Markdown content of the note'),
+      tags: z.array(z.string()).optional().describe('Optional array of tags to prepend to the note'),
     }),
     annotations: {
       readOnlyHint: false,
@@ -82,42 +122,45 @@ export class ObsidianTools {
   })
   @Widget('markdownify-result')
   async saveNote(
-    input: { filename: string; content: string; tags?: string[] },
+    input: {
+      filename: string;
+      content: string;
+      tags?: string[];
+    },
     ctx: ExecutionContext,
   ) {
     ctx.logger.info('Saving note to Obsidian Vault', { filename: input.filename });
-    const savedPath = await this.obsidianService.saveNote(
-      input.filename,
-      input.content,
-      input.tags,
-    );
+    const savedPath = await this.obsidianService.saveNote(input.filename, input.content, input.tags);
     return {
-      text: `✅ Saved note to Obsidian Vault: "${savedPath}"`,
-      title: `Obsidian: ${input.filename}`,
-      type: 'obsidian-note',
-      filepath: savedPath,
+      success: true,
+      filename: input.filename,
+      savedPath,
+      text: input.content,
     };
   }
 
   @Tool({
     name: 'obsidian-list-notes',
     title: 'List Notes in Obsidian Vault',
-    description: 'List all Markdown notes and folders in your Obsidian Vault.',
+    description: 'List all Markdown notes and directories inside your local Obsidian Vault.',
     inputSchema: z.object({
-      directory: z.string().optional().describe('Subdirectory inside Obsidian Vault (optional, defaults to vault root)'),
+      dirPath: z.string().optional().default('').describe('Optional subdirectory relative to vault root'),
     }),
     annotations: {
       readOnlyHint: true,
     },
   })
-  async listNotes(input: { directory?: string }, ctx: ExecutionContext) {
-    ctx.logger.info('Listing notes in Obsidian Vault', { directory: input.directory });
-    const files = await this.obsidianService.listFiles(input.directory);
-    const listText = files
-      .map((f) => `${f.isDir ? '📁' : '📄'} ${f.path}`)
-      .join('\n');
+  async listNotes(
+    input: {
+      dirPath?: string;
+    },
+    ctx: ExecutionContext,
+  ) {
+    ctx.logger.info('Listing notes in Obsidian Vault', { dirPath: input.dirPath });
+    const files = await this.obsidianService.listFiles(input.dirPath || '');
     return {
-      text: `# Obsidian Vault Notes (${files.length} items)\n\n${listText}`,
+      success: true,
+      vaultPath: this.obsidianService.getVaultPath(),
       files,
     };
   }
@@ -125,111 +168,138 @@ export class ObsidianTools {
   @Tool({
     name: 'obsidian-get-note',
     title: 'Get Note from Obsidian Vault',
-    description: 'Read and return the text content of a note from your Obsidian Vault.',
+    description: 'Read the Markdown content of an existing note from your Obsidian Vault.',
     inputSchema: z.object({
-      filename: z.string().describe('Name or relative path of the note in Obsidian Vault'),
+      filename: z.string().describe('Filename or relative path in vault (e.g. "My Note.md")'),
     }),
     annotations: {
       readOnlyHint: true,
     },
   })
   @Widget('markdownify-result')
-  async getNote(input: { filename: string }, ctx: ExecutionContext) {
-    ctx.logger.info('Reading note from Obsidian Vault', { filename: input.filename });
-    const text = await this.obsidianService.getNote(input.filename);
+  async getNote(
+    input: {
+      filename: string;
+    },
+    ctx: ExecutionContext,
+  ) {
+    ctx.logger.info('Fetching note from Obsidian Vault', { filename: input.filename });
+    const content = await this.obsidianService.getNote(input.filename);
     return {
-      text,
-      title: `Obsidian Note: ${input.filename}`,
-      type: 'obsidian-note',
-      filepath: input.filename,
+      success: true,
+      filename: input.filename,
+      text: content,
     };
   }
 
   @Tool({
     name: 'obsidian-append-note',
     title: 'Append Content to Obsidian Note',
-    description: 'Append new markdown text or summary to an existing or new note in your Obsidian Vault.',
+    description: 'Append new Markdown text or section to the end of an existing note in your Obsidian Vault.',
     inputSchema: z.object({
-      filename: z.string().describe('Name of the note in Obsidian Vault'),
-      content: z.string().describe('Markdown text content to append'),
+      filename: z.string().describe('Filename or relative path in vault'),
+      contentToAppend: z.string().describe('Markdown text to append'),
     }),
     annotations: {
       readOnlyHint: false,
     },
   })
-  async appendNote(input: { filename: string; content: string }, ctx: ExecutionContext) {
+  async appendNote(
+    input: {
+      filename: string;
+      contentToAppend: string;
+    },
+    ctx: ExecutionContext,
+  ) {
     ctx.logger.info('Appending to Obsidian note', { filename: input.filename });
-    const notePath = await this.obsidianService.appendNote(input.filename, input.content);
+    const savedPath = await this.obsidianService.appendNote(input.filename, input.contentToAppend);
     return {
-      text: `✅ Appended content to Obsidian note: "${notePath}"`,
+      success: true,
+      filename: input.filename,
+      savedPath,
     };
   }
 
   @Tool({
     name: 'obsidian-patch-note',
-    title: 'Patch Content Under Heading in Obsidian Note',
-    description: 'Insert markdown content under a specific heading (e.g. "## Action Items") in an Obsidian note.',
+    title: 'Patch Section in Obsidian Note',
+    description: 'Insert or update content under a specific heading inside an existing Obsidian note.',
     inputSchema: z.object({
-      filename: z.string().describe('Name of the note in Obsidian Vault'),
-      heading: z.string().describe('Target heading inside note (e.g. "Summary" or "Action Items")'),
-      content: z.string().describe('Markdown content to insert under the heading'),
+      filename: z.string().describe('Filename or relative path in vault'),
+      heading: z.string().describe('Heading under which to insert content (e.g. "Tasks" or "Key Points")'),
+      contentToInsert: z.string().describe('Markdown text to insert under the heading'),
     }),
     annotations: {
       readOnlyHint: false,
     },
   })
   async patchNote(
-    input: { filename: string; heading: string; content: string },
+    input: {
+      filename: string;
+      heading: string;
+      contentToInsert: string;
+    },
     ctx: ExecutionContext,
   ) {
-    ctx.logger.info('Patching Obsidian note heading', { filename: input.filename, heading: input.heading });
-    const notePath = await this.obsidianService.patchNote(
-      input.filename,
-      input.heading,
-      input.content,
-    );
+    ctx.logger.info('Patching Obsidian note', { filename: input.filename, heading: input.heading });
+    const savedPath = await this.obsidianService.patchNote(input.filename, input.heading, input.contentToInsert);
     return {
-      text: `✅ Inserted content under heading "${input.heading}" in Obsidian note "${notePath}"`,
+      success: true,
+      filename: input.filename,
+      heading: input.heading,
+      savedPath,
     };
   }
 
   @Tool({
     name: 'obsidian-search-notes',
-    title: 'Search Notes in Obsidian Vault',
-    description: 'Search for text query or topic across all notes in your Obsidian Vault.',
+    title: 'Search Obsidian Vault Notes',
+    description: 'Search for notes in your Obsidian Vault matching a query keyword or phrase.',
     inputSchema: z.object({
-      query: z.string().describe('Search query text'),
+      query: z.string().describe('Search query string'),
     }),
     annotations: {
       readOnlyHint: true,
     },
   })
-  async searchNotes(input: { query: string }, ctx: ExecutionContext) {
-    ctx.logger.info('Searching Obsidian Vault notes', { query: input.query });
-    const matches = await this.obsidianService.searchNotes(input.query);
-    const resultText = matches.map((m) => `- 📄 ${m.path}`).join('\n');
+  async searchNotes(
+    input: {
+      query: string;
+    },
+    ctx: ExecutionContext,
+  ) {
+    ctx.logger.info('Searching Obsidian notes', { query: input.query });
+    const results = await this.obsidianService.searchNotes(input.query);
     return {
-      text: `# Obsidian Search Results for "${input.query}" (${matches.length} matches)\n\n${resultText || 'No matching notes found.'}`,
-      matches,
+      success: true,
+      query: input.query,
+      results,
     };
   }
 
   @Tool({
     name: 'obsidian-delete-note',
     title: 'Delete Note from Obsidian Vault',
-    description: 'Delete a note file from your Obsidian Vault.',
+    description: 'Delete a note from your local Obsidian Vault.',
     inputSchema: z.object({
-      filename: z.string().describe('Name or path of the note to delete'),
+      filename: z.string().describe('Filename or relative path to delete'),
     }),
     annotations: {
       readOnlyHint: false,
     },
   })
-  async deleteNote(input: { filename: string }, ctx: ExecutionContext) {
+  async deleteNote(
+    input: {
+      filename: string;
+    },
+    ctx: ExecutionContext,
+  ) {
     ctx.logger.info('Deleting note from Obsidian Vault', { filename: input.filename });
     await this.obsidianService.deleteNote(input.filename);
     return {
-      text: `🗑️ Deleted note "${input.filename}" from Obsidian Vault.`,
+      success: true,
+      filename: input.filename,
+      message: `Note "${input.filename}" deleted successfully`,
     };
   }
 }

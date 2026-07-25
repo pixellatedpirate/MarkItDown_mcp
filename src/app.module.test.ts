@@ -28,6 +28,7 @@ describe('AppModule NitroStack Server', () => {
     const toolNames = tools.map((t) => t.options.name);
 
     expect(toolNames).toContain('obsidian-convert-and-save');
+    expect(toolNames).toContain('obsidian-generate-topic-note');
     expect(toolNames).toContain('obsidian-save-note');
     expect(toolNames).toContain('obsidian-list-notes');
     expect(toolNames).toContain('obsidian-get-note');
@@ -35,7 +36,7 @@ describe('AppModule NitroStack Server', () => {
     expect(toolNames).toContain('obsidian-patch-note');
     expect(toolNames).toContain('obsidian-search-notes');
     expect(toolNames).toContain('obsidian-delete-note');
-    expect(tools.length).toBe(8);
+    expect(tools.length).toBe(9);
   });
 
   test('creates McpApplicationFactory instance without error', async () => {
