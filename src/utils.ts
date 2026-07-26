@@ -260,24 +260,15 @@ export function summarizeShortly(content: string, title?: string): string {
 export function injectObsidianWikilinks(text: string): string {
   if (!text) return text;
 
-  // Curated, high-value domain concepts across major fields
   const domainConcepts = [
-    // Programming Languages & Frameworks
     'Python', 'Java', 'JavaScript', 'TypeScript', 'C++', 'C#', 'Go', 'Rust', 'Ruby', 'PHP', 'SQL', 'HTML', 'CSS', 'Bash', 'React', 'Node.js',
-    // Core Computer Science & Programming Fundamentals
     'Variables', 'Data Types', 'Strings', 'Integers', 'Booleans', 'Floats', 'Arrays', 'Lists', 'Dictionaries', 'Tuples', 'Sets',
     'Functions', 'Methods', 'Loops', 'For Loops', 'While Loops', 'Conditional Logic', 'Recursion', 'Pointers', 'Memory Management',
-    // Object-Oriented Principles
     'OOPS', 'Object-Oriented Programming', 'Encapsulation', 'Abstraction', 'Inheritance', 'Polymorphism', 'Classes', 'Objects', 'Interfaces',
-    // Data Structures & Algorithms
     'Data Structures', 'Algorithms', 'Binary Trees', 'Linked Lists', 'Stacks', 'Queues', 'Hash Tables', 'Graphs', 'Sorting', 'Searching',
-    // Software Engineering & Architecture
     'System Design', 'Software Architecture', 'Design Patterns', 'API', 'REST API', 'JSON', 'HTTP', 'Database', 'Cloud Computing', 'DevOps', 'CI/CD', 'Security',
-    // AI, Data Science & Tech
     'Artificial Intelligence', 'Machine Learning', 'Deep Learning', 'Neural Networks', 'Large Language Models', 'Data Science', 'Data Analysis',
-    // Hard Sciences & Math
     'Quantum Computing', 'Physics', 'Mathematics', 'Calculus', 'Linear Algebra', 'Statistics', 'Probability', 'Chemistry', 'Biology',
-    // Tools & Platforms
     'PyCharm', 'VS Code', 'Git', 'GitHub', 'Obsidian', 'Markdown'
   ];
 
@@ -293,7 +284,6 @@ export function injectObsidianWikilinks(text: string): string {
     }
   }
 
-  // Only append Knowledge Graph Links footer if 2 or more genuine domain concepts are present
   if (!result.includes('Knowledge Graph Links') && presentConcepts.size >= 2) {
     const topLinks = Array.from(presentConcepts).map((c) => `[[${c}]]`).join(' • ');
     const linksHeader = `\n\n## 🕸️ Knowledge Graph Links\n${topLinks}\n`;
@@ -305,7 +295,221 @@ export function injectObsidianWikilinks(text: string): string {
 
 export function generateTopicNoteMarkdown(topic: string, title?: string): string {
   const cleanTitle = title || `${topic} Study Notes`;
-  const lowerTopic = topic.toLowerCase();
+  const lowerTopic = topic.toLowerCase().trim();
+
+  // Specific Rich Topic Knowledge Engine
+  if (lowerTopic.includes('encapsulation')) {
+    const raw = [
+      `# 📌 Encapsulation Study Guide`,
+      ``,
+      `> **Executive Summary**: Encapsulation is a core pillar of Object-Oriented Programming (OOPS). It bundles data attributes and methods operating on that data within a single class while restricting direct access to internal object state.`,
+      ``,
+      `### 🏛️ Core Principles of Encapsulation`,
+      `- **Data Hiding**: Prevents external code from corrupting internal state by marking fields private or protected.`,
+      `- **Controlled Access**: Uses explicit Getter and Setter methods to inspect or safely update private state.`,
+      `- **Flexibility & Maintainability**: Allows internal class refactoring without breaking external caller contracts.`,
+      ``,
+      `### 💻 Code Implementation (Python & Java)`,
+      `\`\`\`python`,
+      `class BankAccount:`,
+      `    def __init__(self, owner: str, balance: float):`,
+      `        self.owner = owner`,
+      `        self.__balance = balance # Private attribute (__ prefix)`,
+      ``,
+      `    def deposit(self, amount: float) -> bool:`,
+      `        if amount > 0:`,
+      `            self.__balance += amount`,
+      `            return True`,
+      `        return False`,
+      ``,
+      `    def get_balance(self) -> float: # Controlled Getter`,
+      `        return self.__balance`,
+      `\`\`\``,
+      ``,
+      `### 🔑 Key Takeaways`,
+      `- Enforces clear boundaries between public APIs and private state.`,
+      `- Related concepts: [[OOPS]], [[Abstraction]], [[Classes]], [[Objects]], [[Python]], [[Java]].`,
+    ].join('\n');
+    return injectObsidianWikilinks(raw);
+  }
+
+  if (lowerTopic.includes('abstraction')) {
+    const raw = [
+      `# 📌 Abstraction Study Guide`,
+      ``,
+      `> **Executive Summary**: Abstraction hides complex internal implementation mechanics and exposes only essential interfaces to the user, reducing cognitive complexity.`,
+      ``,
+      `### 💡 Key Pillars & Mechanisms`,
+      `- **Interfaces & Abstract Classes**: Defines contracts (what to do) without specifying concrete code (how to do it).`,
+      `- **Complexity Reduction**: Hides low-level algorithm steps, network protocols, or database queries.`,
+      ``,
+      `### 💻 Code Implementation (Python)`,
+      `\`\`\`python`,
+      `from abc import ABC, abstractmethod`,
+      ``,
+      `class PaymentGateway(ABC):`,
+      `    @abstractmethod`,
+      `    def process_payment(self, amount: float) -> bool:`,
+      `        pass`,
+      ``,
+      `class StripePayment(PaymentGateway):`,
+      `    def process_payment(self, amount: float) -> bool:`,
+      `        print(f"Processing Stripe payment: \\\${amount}")`,
+      `        return True`,
+      `\`\`\``,
+      ``,
+      `### 🔑 Abstraction vs Encapsulation`,
+      `- **Abstraction**: Solves design-level complexity (Hiding how things work).`,
+      `- **Encapsulation**: Solves implementation-level privacy (Hiding internal data state).`,
+    ].join('\n');
+    return injectObsidianWikilinks(raw);
+  }
+
+  if (lowerTopic.includes('inheritance')) {
+    const raw = [
+      `# 📌 Inheritance Study Guide`,
+      ``,
+      `> **Executive Summary**: Inheritance allows a child (derived) class to acquire properties, fields, and methods from a parent (base) class, maximizing code reuse.`,
+      ``,
+      `### 📦 Types of Inheritance`,
+      `- **Single Inheritance**: One child class inherits from one parent class.`,
+      `- **Multilevel Inheritance**: A class inherits from a derived class.`,
+      `- **Multiple Inheritance**: A class inherits from multiple parents (supported in Python, C++).`,
+      ``,
+      `### 💻 Code Implementation (Python)`,
+      `\`\`\`python`,
+      `class Vehicle:`,
+      `    def __init__(self, brand: str):`,
+      `        self.brand = brand`,
+      `    def start(self) -> str:`,
+      `        return f"{self.brand} engine started."`,
+      ``,
+      `class Car(Vehicle): # Inherits from Vehicle`,
+      `    def __init__(self, brand: str, model: str):`,
+      `        super().__init__(brand) # Calls parent constructor`,
+      `        self.model = model`,
+      `\`\`\``,
+    ].join('\n');
+    return injectObsidianWikilinks(raw);
+  }
+
+  if (lowerTopic.includes('polymorphism')) {
+    const raw = [
+      `# 📌 Polymorphism Study Guide`,
+      ``,
+      `> **Executive Summary**: Polymorphism ("many forms") enables objects of different classes to respond to the same method call in their own specific ways.`,
+      ``,
+      `### 🔀 Types of Polymorphism`,
+      `- **Method Overriding (Runtime)**: Child class provides a specific implementation of a parent method.`,
+      `- **Method Overloading (Compile-time)**: Defining methods with the same name but different signatures.`,
+      ``,
+      `### 💻 Code Implementation (Python)`,
+      `\`\`\`python`,
+      `class Shape:`,
+      `    def area(self) -> float:`,
+      `        return 0.0`,
+      ``,
+      `class Circle(Shape):`,
+      `    def __init__(self, radius: float):`,
+      `        self.radius = radius`,
+      `    def area(self) -> float: # Overrides parent method`,
+      `        return 3.14159 * (self.radius ** 2)`,
+      `\`\`\``,
+    ].join('\n');
+    return injectObsidianWikilinks(raw);
+  }
+
+  if (lowerTopic.includes('variable') || lowerTopic.includes('data type')) {
+    const raw = [
+      `# 📌 Variables & Data Types Guide`,
+      ``,
+      `> **Executive Summary**: Variables store data in named memory locations. Data types dictate the size, layout, and operations applicable to stored values.`,
+      ``,
+      `### 📦 Primitive & Complex Data Types`,
+      `- **Integers**: Whole numbers without decimals (e.g. \`42\`).`,
+      `- **Floating-Point**: Decimal numbers (e.g. \`3.14\`).`,
+      `- **Strings**: Text character sequences (e.g. \`"Hello"\`).`,
+      `- **Booleans**: Logical \`True\` or \`False\`.`,
+      `- **Collections**: [[Lists]], [[Arrays]], [[Tuples]], [[Dictionaries]], [[Sets]].`,
+      ``,
+      `### 💻 Code Implementation (Python & Java)`,
+      `\`\`\`python`,
+      `age: int = 25`,
+      `price: float = 19.99`,
+      `name: str = "Alice"`,
+      `is_active: bool = True`,
+      `\`\`\``,
+    ].join('\n');
+    return injectObsidianWikilinks(raw);
+  }
+
+  if (lowerTopic.includes('function') || lowerTopic.includes('method')) {
+    const raw = [
+      `# 📌 Functions & Methods Guide`,
+      ``,
+      `> **Executive Summary**: Functions are reusable blocks of code designed to perform a specific task, promoting modularity and clean structure.`,
+      ``,
+      `### ⚡ Core Concepts`,
+      `- **Parameters & Arguments**: Inputs passed into functions.`,
+      `- **Return Values**: Computed output returned to callers.`,
+      `- **Scope**: Local stack frame vs global scope.`,
+      ``,
+      `### 💻 Code Implementation (Python)`,
+      `\`\`\`python`,
+      `def calculate_total(prices: list[float], tax_rate: float = 0.05) -> float:`,
+      `    subtotal = sum(prices)`,
+      `    return subtotal * (1 + tax_rate)`,
+      ``,
+      `print(calculate_total([10.0, 20.0]))`,
+      `\`\`\``,
+    ].join('\n');
+    return injectObsidianWikilinks(raw);
+  }
+
+  if (lowerTopic.includes('loop') || lowerTopic.includes('control flow')) {
+    const raw = [
+      `# 📌 Loops & Control Flow Guide`,
+      ``,
+      `> **Executive Summary**: Loops execute code blocks repeatedly based on iteration sequences or conditional evaluations.`,
+      ``,
+      `### 🔁 Loop Structures`,
+      `- **For Loop**: Iterates over ranges, arrays, or collections.`,
+      `- **While Loop**: Continues execution while a boolean condition remains \`True\`.`,
+      `- **Keywords**: \`break\` (exit loop), \`continue\` (skip iteration).`,
+      ``,
+      `### 💻 Code Implementation (Python)`,
+      `\`\`\`python`,
+      `for i in range(5):`,
+      `    print(f"Iteration: {i}")`,
+      `\`\`\``,
+    ].join('\n');
+    return injectObsidianWikilinks(raw);
+  }
+
+  if (lowerTopic.includes('pointer')) {
+    const raw = [
+      `# 📌 Pointers & Memory Management`,
+      ``,
+      `> **Executive Summary**: A pointer is a variable holding the memory address of another variable, offering direct RAM inspection and dynamic allocation.`,
+      ``,
+      `### 🧠 Core Concepts`,
+      `- **Address-of (\`&\`)**: Obtains memory location.`,
+      `- **Dereference (\`*\`)**: Accesses value at location.`,
+      `- **Memory Stack vs Heap**: Stack stores local frames; Heap handles dynamic allocation.`,
+      ``,
+      `### 💻 Code Implementation (C)`,
+      `\`\`\`c`,
+      `#include <stdio.h>`,
+      `int main() {`,
+      `    int val = 42;`,
+      `    int *ptr = &val;`,
+      `    printf("Value: %d, Address: %p\\n", *ptr, (void*)ptr);`,
+      `    return 0;`,
+      `}`,
+      `\`\`\``,
+    ].join('\n');
+    return injectObsidianWikilinks(raw);
+  }
 
   if (lowerTopic.includes('oops') || lowerTopic.includes('object oriented')) {
     const oopsNote = [
@@ -347,15 +551,24 @@ export function generateTopicNoteMarkdown(topic: string, title?: string): string
     return injectObsidianWikilinks(oopsNote);
   }
 
+  // Universal Fallback Generator with rich multi-section content
   const genericNote = [
     `# 📌 ${cleanTitle}`,
     ``,
-    `> **Executive Summary**: Structured study guide and reference notes on ${topic}, key principles, and practical application.`,
+    `> **Executive Summary**: Structured reference guide and detailed study notes on ${topic}, covering core mechanics, practical use cases, and design considerations.`,
     ``,
     `### 💡 Fundamentals of ${topic}`,
-    `- Core concepts and foundational pillars defining ${topic}.`,
-    `- Primary terminology, structures, and execution workflows.`,
-    `- Practical use cases and real-world software architecture applications.`,
+    `- Foundational pillars and terminology defining ${topic}.`,
+    `- Execution flow, architectural patterns, and operational mechanics.`,
+    `- Practical use cases in real-world software systems and data engineering.`,
+    ``,
+    `### 💻 Practical Implementation & Usage`,
+    `\`\`\`text`,
+    `// Standard workflow for ${topic}`,
+    `1. Initialize environment and configure parameters`,
+    `2. Process input datasets or execute core routines`,
+    `3. Validate outputs and handle runtime edge cases`,
+    `\`\`\``,
     ``,
     `### 🛠️ Key Takeaways & Best Practices`,
     `- Keep implementation modular, clean, and well-documented.`,
