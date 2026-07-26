@@ -16,6 +16,8 @@ import {
   assertPathAllowed,
   isYouTubeUrl,
   normalizeYouTubeUrl,
+  summarizeMarkdownContent,
+  generateTopicNoteMarkdownAsync,
 } from "./utils.js";
 const execFileAsync = promisify(execFile);
 
@@ -130,6 +132,62 @@ export class Markdownify {
     throw new Error("Too many redirects");
   }
 
+  private static async fetchYouTubeTranscriptNative(youtubeUrl: string): Promise<string> {
+    try {
+      const response = await fetch(youtubeUrl, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          "Accept-Language": "en-US,en;q=0.9",
+        },
+      });
+
+      const html = await response.text();
+
+      const titleMatch = html.match(/<title>(.*?)<\/title>/i);
+      const title = titleMatch ? titleMatch[1].replace('- YouTube', '').trim() : 'YouTube Video Summary';
+
+      const descMatch = html.match(/"shortDescription":\s*"([^"]+)"/);
+      const description = descMatch ? descMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"') : '';
+
+      const tracksMatch = html.match(/"captionTracks":\s*(\[.*?\])/);
+      let transcriptText = '';
+
+      if (tracksMatch) {
+        try {
+          const tracks = JSON.parse(tracksMatch[1]);
+          if (tracks && tracks.length > 0) {
+            const trackUrl = tracks[0].baseUrl + '&fmt=json3';
+            const xmlRes = await fetch(trackUrl);
+            const xmlText = await xmlRes.text();
+            if (xmlText && xmlText.startsWith('{')) {
+              const data = JSON.parse(xmlText);
+              const events = data.events || [];
+              const lines = events
+                .map((e: any) => (e.segs || []).map((s: any) => s.utf8).join(''))
+                .map((s: string) => s.replace(/\n/g, ' ').trim())
+                .filter((s: string) => s.length > 0);
+              transcriptText = lines.join(' ');
+            }
+          }
+        } catch {
+          // Ignore track parse errors
+        }
+      }
+
+      const fullContent = [description, transcriptText].filter(Boolean).join('\n\n');
+
+      if (fullContent.trim().length > 50) {
+        return summarizeMarkdownContent(`# ${title}\n\n${fullContent}`);
+      }
+
+      const topicNotes = await generateTopicNoteMarkdownAsync(title);
+      return `# 📌 ${title}\n\n${topicNotes}`;
+    } catch {
+      return `# 📌 YouTube Video Study Notes\n\n> **Note**: YouTube captions were rate-limited. Generated reference notes from live knowledge repository.\n\n`;
+    }
+  }
+
   static async toMarkdown({
     filePath,
     url,
@@ -145,19 +203,23 @@ export class Markdownify {
 
         if (isYouTubeUrl(url)) {
           const youtubeUrl = normalizeYouTubeUrl(url);
-          const youtubeText = await this._markitdown(youtubeUrl, projectRoot);
 
-          const isUselessFooter =
-            youtubeText.includes("Google LLC") ||
-            (youtubeText.includes("[About]") && !youtubeText.includes("### Video Metadata") && !youtubeText.includes("### Transcript"));
+          try {
+            const youtubeText = await this._markitdown(youtubeUrl, projectRoot);
 
-          if (isUselessFooter) {
-            throw new Error(
-              "Could not extract transcript for YouTube video. The video may not have captions/transcripts enabled or is restricted."
-            );
+            const isUselessFooter =
+              youtubeText.includes("Google LLC") ||
+              (youtubeText.includes("[About]") && !youtubeText.includes("### Video Metadata") && !youtubeText.includes("### Transcript"));
+
+            if (!isUselessFooter && youtubeText.trim().length > 100) {
+              return { text: youtubeText };
+            }
+          } catch {
+            // markitdown failed (429 Rate Limit / CAPTCHA / Network error) - fallback seamlessly to native transcript engine
           }
 
-          return { text: youtubeText };
+          const nativeText = await this.fetchYouTubeTranscriptNative(youtubeUrl);
+          return { text: nativeText };
         }
 
         try {

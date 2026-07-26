@@ -1,7 +1,7 @@
 import { ToolDecorator as Tool, Widget, ExecutionContext, z } from '@nitrostack/core';
 import { ObsidianService } from './obsidian.service.js';
 import { Markdownify } from '../../Markdownify.js';
-import { summarizeMarkdownContent, summarizeShortly, generateTopicNoteMarkdown } from '../../utils.js';
+import { summarizeMarkdownContent, summarizeShortly, generateTopicNoteMarkdown, generateTopicNoteMarkdownAsync } from '../../utils.js';
 
 export class ObsidianTools {
   private obsidianService = new ObsidianService();
@@ -151,7 +151,7 @@ export class ObsidianTools {
       title: noteTitle,
     });
 
-    const noteMarkdown = generateTopicNoteMarkdown(input.topic, noteTitle);
+    const noteMarkdown = await generateTopicNoteMarkdownAsync(input.topic, noteTitle);
     const savedPath = await this.obsidianService.saveNote(
       noteTitle,
       noteMarkdown,

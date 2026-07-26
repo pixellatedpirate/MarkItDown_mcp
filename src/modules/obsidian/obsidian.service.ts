@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import dotenv from 'dotenv';
-import { expandHome, generateTopicNoteMarkdown, injectObsidianWikilinks } from '../../utils.js';
+import { expandHome, generateTopicNoteMarkdown, generateTopicNoteMarkdownAsync, injectObsidianWikilinks } from '../../utils.js';
 
 dotenv.config();
 
@@ -215,7 +215,7 @@ export class ObsidianService {
       const notePath = this.resolveNotePath(linkTitle);
       if (!fs.existsSync(notePath)) {
         try {
-          const generatedContent = generateTopicNoteMarkdown(linkTitle);
+          const generatedContent = await generateTopicNoteMarkdownAsync(linkTitle);
           const contentWithParentLink = `${generatedContent}\n\n## 🔗 Referencing Notes\n- [[${parentTitle}]]\n`;
           await fs.promises.writeFile(notePath, contentWithParentLink, 'utf-8');
           filledNotes.push(linkTitle);

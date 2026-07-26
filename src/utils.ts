@@ -293,11 +293,97 @@ export function injectObsidianWikilinks(text: string): string {
   return result;
 }
 
+export async function fetchTopicInfoFromInternet(topic: string): Promise<string> {
+  const cleanTopic = topic.trim();
+  let wikiText = '';
+  let webSummary = '';
+
+  // 1. Fetch live definition & extract from Wikipedia API (Search + Extract)
+  try {
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanTopic)}&format=json&origin=*`;
+    const searchRes = await fetch(searchUrl);
+    if (searchRes.ok) {
+      const searchData = (await searchRes.json()) as any;
+      const firstHit = searchData?.query?.search?.[0];
+      if (firstHit?.pageid) {
+        const extUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&pageids=${firstHit.pageid}&format=json&origin=*`;
+        const extRes = await fetch(extUrl);
+        if (extRes.ok) {
+          const extData = (await extRes.json()) as any;
+          const page = extData?.query?.pages?.[firstHit.pageid];
+          if (page?.extract) {
+            wikiText = page.extract;
+          }
+        }
+      }
+    }
+  } catch {
+    // Ignore Wikipedia fetch errors
+  }
+
+  // 2. Fetch live tutorial & programming details from Web Search
+  try {
+    const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(cleanTopic + ' programming tutorial overview summary')}`;
+    const searchRes = await fetch(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      },
+    });
+    if (searchRes.ok) {
+      const html = await searchRes.text();
+      const rawText = html
+        .replace(/<script\b[^<]*>([\s\S]*?)<\/script>/gi, '')
+        .replace(/<style\b[^<]*>([\s\S]*?)<\/style>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ');
+      const snippets = Array.from(
+        rawText.matchAll(/([A-Z][^.!?]*?(?:programming|code|language|data|system|concept|function|method|type|variable|object|class)[^.!?]*?[.!?])/g)
+      )
+        .map((m) => m[1].trim())
+        .filter((s) => s.length > 25);
+      if (snippets.length > 0) {
+        webSummary = Array.from(new Set(snippets)).slice(0, 10).join(' ');
+      }
+    }
+  } catch {
+    // Ignore web search errors
+  }
+
+  const combinedContent = [wikiText, webSummary].filter(Boolean).join('\n\n');
+  return combinedContent.length > 50 ? combinedContent : '';
+}
+
+export async function generateTopicNoteMarkdownAsync(topic: string, title?: string): Promise<string> {
+  const cleanTitle = title || `${topic} Study Notes`;
+
+  try {
+    const internetData = await fetchTopicInfoFromInternet(topic);
+    if (internetData && internetData.length > 100) {
+      const formattedNote = summarizeToMarkdownFormat(internetData, cleanTitle);
+      const noteWithHeader = [
+        `# 📌 ${cleanTitle}`,
+        ``,
+        `> **Live Internet Reference & Study Notes**: Auto-retrieved live data, documentation, and comprehensive breakdown for **${topic}**.`,
+        ``,
+        formattedNote.replace(/^#\s+.*$/m, ''),
+        ``,
+        `---`,
+        `*Retrieved live from Wikipedia & Internet Knowledge Repositories*`,
+      ].join('\n');
+
+      return injectObsidianWikilinks(noteWithHeader);
+    }
+  } catch {
+    // Fallback to offline knowledge engine
+  }
+
+  return generateTopicNoteMarkdown(topic, title);
+}
+
 export function generateTopicNoteMarkdown(topic: string, title?: string): string {
   const cleanTitle = title || `${topic} Study Notes`;
   const lowerTopic = topic.toLowerCase().trim();
 
-  // Specific Rich Topic Knowledge Engine
   if (lowerTopic.includes('encapsulation')) {
     const raw = [
       `# 📌 Encapsulation Study Guide`,
@@ -668,22 +754,19 @@ export function summarizeToMarkdownFormat(content: string, title?: string): stri
   let totalPoints = 0;
   for (const [category, points] of Object.entries(topics)) {
     if (points.length > 0) {
-      const topPoints = points.slice(0, 4);
       markdownBlocks.push(`### ${category}`);
-      for (const p of topPoints) {
-        const shortPoint = p.length > 140 ? p.slice(0, 137) + '...' : p;
-        markdownBlocks.push(`- ${shortPoint}`);
+      for (const p of points.slice(0, 12)) {
+        markdownBlocks.push(`- ${p}`);
         totalPoints++;
       }
       markdownBlocks.push(``);
     }
   }
 
-  if (totalPoints < 3) {
-    markdownBlocks.push(`### 💡 Key Takeaways`);
-    for (const s of cleanSentences.slice(0, 8)) {
-      const shortPoint = s.length > 140 ? s.slice(0, 137) + '...' : s;
-      markdownBlocks.push(`- ${shortPoint}`);
+  if (cleanSentences.length > 0) {
+    markdownBlocks.push(`### 🔑 Detailed Concept Breakdown & Comprehensive Notes`);
+    for (const s of cleanSentences.slice(0, 20)) {
+      markdownBlocks.push(`- ${s}`);
     }
     markdownBlocks.push(``);
   }
