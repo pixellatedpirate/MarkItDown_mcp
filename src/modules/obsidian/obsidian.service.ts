@@ -26,26 +26,17 @@ export class ObsidianService {
   }
 
   public getVaultPath(): string {
-    if (process.env.OBSIDIAN_VAULT_PATH) {
-      return expandHome(process.env.OBSIDIAN_VAULT_PATH);
-    }
+    const defaultVaultPath = path.join(os.homedir(), 'Documents', 'markdownify');
 
-    const candidatePaths = [
-      path.join(os.homedir(), 'Documents', 'MarkItDown'),
-      path.join(os.homedir(), 'Documents', 'Obsidian Vault'),
-      path.join(os.homedir(), 'Documents', 'Vault'),
-      path.join(os.homedir(), 'Obsidian'),
-      path.join(os.homedir(), 'Vault'),
-      process.cwd(),
-    ];
-
-    for (const cand of candidatePaths) {
-      if (fs.existsSync(cand)) {
-        return cand;
+    if (!fs.existsSync(defaultVaultPath)) {
+      try {
+        fs.mkdirSync(defaultVaultPath, { recursive: true });
+      } catch {
+        // Ignore creation error
       }
     }
 
-    return process.cwd();
+    return defaultVaultPath;
   }
 
   private resolveNotePath(filename: string): string {
